@@ -1,0 +1,28 @@
+{
+  "name": "jTDAL",
+  "description": "JQuery small template engine based on Zope TAL",
+  "main": "jTDAL.min.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/stefanobalocco/jTDAL.git"
+  },
+  "version": "1.0",
+  "keywords": [],
+  "author": "Stefano Balocco <stefano.balocco@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/stefanobalocco/jTDAL/issues"
+  },
+  "homepage": "https://github.com/stefanobalocco/jTDAL",
+  "dependencies": {
+    "@types/jquery": "~3"
+  },
+  "scripts": {
+    "build": "node_modules/typescript/bin/tsc",
+    "uglify": "node_modules/uglify-es/bin/uglifyjs jTDAL.js -o jTDAL.min.js -m -c"
+  },
+  "devDependencies": {
+    "typescript": "^3.9.5",
+    "uglify-es": "^3.3.9"
+  }
+}
