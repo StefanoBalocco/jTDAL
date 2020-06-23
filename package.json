@@ -4,16 +4,16 @@
   "main": "jTDAL.min.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/stefanobalocco/jTDAL.git"
+    "url": "https://github.com/StefanoBalocco/jTDAL.git"
   },
   "version": "1.0",
   "keywords": [],
   "author": "Stefano Balocco <stefano.balocco@gmail.com>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/stefanobalocco/jTDAL/issues"
+    "url": "https://github.com/StefanoBalocco/jTDAL/issues"
   },
-  "homepage": "https://github.com/stefanobalocco/jTDAL",
+  "homepage": "https://github.com/StefanoBalocco/jTDAL",
   "dependencies": {
     "@types/jquery": "~3"
   },
