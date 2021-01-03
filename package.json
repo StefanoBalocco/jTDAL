@@ -15,7 +15,6 @@
   },
   "homepage": "https://github.com/StefanoBalocco/jTDAL",
   "dependencies": {
-    "@types/jquery": "~3"
   },
   "scripts": {
     "build": "node_modules/typescript/bin/tsc",

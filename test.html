@@ -45,81 +45,72 @@
 </div>
 <script id="template-tdal-attributes" type="text/html">
 	<div class="card">
-		<div class="section">
-			<code>&lt;img src="https://picsum.photos/id/1025/480/320?blur=10" data-tdal-attributes="src DEFAULT" /&gt;</code>
-		</div>
-		<img class="section media" src="https://picsum.photos/id/1025/480/320?blur=10" data-tdal-attributes="src DEFAULT" />
-	</div>
-	<div class="card">
-		<div class="section">
-			<code>&lt;img src="https://picsum.photos/id/1025/480/320?blur=10" data-tdal-attributes="src not-exist | DEFAULT" /&gt;</code>
-		</div>
-		<img class="section media" src="https://picsum.photos/id/1025/480/320?blur=10" data-tdal-attributes="src not-exist | DEFAULT" />
-	</div>
-	<div class="card">
+		<h4 class="section">Keeping default image</h4>
 		<div class="section">
 			<code>&lt;img src="https://picsum.photos/id/1025/480/320?blur=10" data-tdal-attributes="src TRUE" /&gt;</code>
 		</div>
 		<img class="section media" src="https://picsum.photos/id/1025/480/320?blur=10" data-tdal-attributes="src TRUE" />
 	</div>
 	<div class="card">
+		<h4 class="section">Keeping default image</h4>
 		<div class="section">
 			<code>&lt;img src="https://picsum.photos/id/1025/480/320?blur=10" data-tdal-attributes="src not-exist | TRUE" /&gt;</code>
 		</div>
 		<img class="section media" src="https://picsum.photos/id/1025/480/320?blur=10" data-tdal-attributes="src not-exist | TRUE" />
 	</div>
 	<div class="card">
+		<h4 class="section">Using {url}</h4>
 		<div class="section">
 			<code>&lt;img src="https://picsum.photos/id/1025/480/320?blur=10" data-tdal-attributes="src url" /&gt;</code>
 		</div>
 		<img class="section media" src="https://picsum.photos/id/1025/480/320?blur=10" data-tdal-attributes="src url" />
 	</div>
 	<div class="card">
+		<h4 class="section">Using {url}</h4>
 		<div class="section">
-			<code>&lt;img src="https://picsum.photos/id/1025/480/320?blur=10" data-tdal-attributes="src not-exist | url | DEFAULT" /&gt;</code>
+			<code>&lt;img src="https://picsum.photos/id/1025/480/320?blur=10" data-tdal-attributes="src not-exist | url | TRUE" /&gt;</code>
 		</div>
-		<img class="section media" src="https://picsum.photos/id/1025/480/320?blur=10" data-tdal-attributes="src not-exist | url | DEFAULT" />
+		<img class="section media" src="https://picsum.photos/id/1025/480/320?blur=10" data-tdal-attributes="src not-exist | url | TRUE" />
 	</div>
 	<div class="card">
-		<div class="section">
-			<code>&lt;img src="https://picsum.photos/id/1025/480/320?blur=10" data-tdal-attributes="src NULL" /&gt;</code>
-		</div>
-		<img class="section media" src="https://picsum.photos/id/1025/480/320?blur=10" data-tdal-attributes="src NULL" />
-	</div>
-	<div class="card">
-		<div class="section">
-			<code>&lt;img src="https://picsum.photos/id/1025/480/320?blur=10" data-tdal-attributes="src not-exist" /&gt;</code>
-		</div>
-		<img class="section media" src="https://picsum.photos/id/1025/480/320?blur=10" data-tdal-attributes="src not-exist" />
-	</div>
-	<div class="card">
-		<div class="section">
-			<code>&lt;img src="https://picsum.photos/id/1025/480/320?blur=10" data-tdal-attributes="src FALSE" /&gt;</code>
-		</div>
-		<img class="section media" src="https://picsum.photos/id/1025/480/320?blur=10" data-tdal-attributes="src FALSE" />
-	</div>
-	<div class="card">
-		<div class="section">
-			<code>&lt;img src="https://picsum.photos/id/1025/480/320?blur=10" data-tdal-attributes="src FALSE | DEFAULTS" /&gt;</code>
-		</div>
-		<img class="section media" src="https://picsum.photos/id/1025/480/320?blur=10" data-tdal-attributes="src FALSE | DEFAULTS" />
-	</div>
-	<div class="card">
+		<h4 class="section">Using {url} in STRING</h4>
 		<div class="section">
 			<code>&lt;img src="https://picsum.photos/id/1025/480/320?blur=10" data-tdal-attributes="src STRING:{url}" /&gt;</code>
 		</div>
 		<img class="section media" src="https://picsum.photos/id/1025/480/320?blur=10" data-tdal-attributes="src STRING:{url}" />
 	</div>
 	<div class="card">
+		<h4 class="section">Using {url} in STRING</h4>
 		<div class="section">
 			<code>&lt;img src="https://picsum.photos/id/1025/480/320?blur=10" data-tdal-attributes="src STRING:{url}?blur=5" /&gt;</code>
 		</div>
 		<img class="section media" src="https://picsum.photos/id/1025/480/320?blur=10" data-tdal-attributes="src STRING:{url}?blur=5" />
 	</div>
+	<div class="card">
+		<h4 class="section">Attribute false: removing src</h4>
+		<div class="section">
+			<code>&lt;img src="https://picsum.photos/id/1025/480/320?blur=10" data-tdal-attributes="src FALSE" /&gt;</code>
+		</div>
+		<img class="section media" src="https://picsum.photos/id/1025/480/320?blur=10" data-tdal-attributes="src FALSE" />
+	</div>
+	<div class="card">
+		<h4 class="section">Attribute false: removing src</h4>
+		<div class="section">
+			<code>&lt;img src="https://picsum.photos/id/1025/480/320?blur=10" data-tdal-attributes="src FALSE | TRUE" /&gt;</code>
+		</div>
+		<img class="section media" src="https://picsum.photos/id/1025/480/320?blur=10" data-tdal-attributes="src FALSE | TRUE" />
+	</div>
+	<div class="card">
+		<h4 class="section">Value missing: removing src</h4>
+		<div class="section">
+			<code>&lt;img src="https://picsum.photos/id/1025/480/320?blur=10" data-tdal-attributes="src not-exist" /&gt;</code>
+		</div>
+		<img class="section media" src="https://picsum.photos/id/1025/480/320?blur=10" data-tdal-attributes="src not-exist" />
+	</div>
 </script>
 <script id="template-tdal-repeat" type="text/html">
 	<div class="card" data-tdal-repeat="item items">
-		<h4 class="section" data-tdal-content="text REPEAT/item/index"></h4>
+		<h4 class="section" data-tdal-content="text REPEAT/item/number"></h4>
 		<div class="section">
 			<code>&lt;img src="https://picsum.photos/id/1025/480/320?blur=10" data-tdal-attributes="src STRING:https://picsum.photos/id/{item}/480/320" /&gt;</code>
 		</div>
@@ -127,13 +118,13 @@
 	</div>
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.slim.min.js" integrity="sha256-3edrmyuQ0w65f8gfBsqowzjJe2iM6n0nKciPUp8y+7E=" crossorigin="anonymous"></script>
-<script>var exports = {"__esModule": true};</script>
 <script type="text/javascript" src="jTDAL.js"></script>
 <script type="text/javascript">
 $( function( )
 {
-	$( '#results-tdal-attributes' ).html( $( $( '#template-tdal-attributes' ).html( ) ).jTDAL( ).Render( { 'url': 'https://picsum.photos/id/1025/480/320' } ) );
-	$( '#results-tdal-repeat' ).html( $( $( '#template-tdal-repeat' ).html( ) ).jTDAL( ).Render( { 'items': [ 1025, 1062, 244, 40, 495, 582 ] } ) );
+	const template = [ jTDAL.Compile( $( '#template-tdal-attributes' ).html( ) ), jTDAL.Compile( $( '#template-tdal-repeat' ).html( ) ) ];
+	$( '#results-tdal-attributes' ).html( template[0]( { 'url': 'https://picsum.photos/id/1025/480/320' } ) );
+	$( '#results-tdal-repeat' ).html( template[1]( { 'items': [ 1025, 1062, 244, 40, 495, 582 ] } ) );
 }
 );
 </script>

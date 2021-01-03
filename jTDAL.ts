@@ -1,423 +1,339 @@
-"use strict";
-///<reference path="jTDAL_JQuery.d.ts" />
-///<reference types="jquery" />
+'use strict';
 
-class jTDAL
-{
-	static readonly regexpPatternPath : string = '(?:[\\w-\\/]*[\\w](?:[\\s]*\\|[\\s]*[\\w-\\/]*[\\w])*)';
-	static readonly regexpPatternExpression : string = '(' + jTDAL.regexpPatternPath + '|STRING:[^;]+)';
-	static readonly regexp : { [ key: string ]: RegExp } =
-	{
-		'condition' : new RegExp( '^[\\s]*(\\!?)[\\s]*(' + jTDAL.regexpPatternPath + ')[\\s]*$' ),
-		'pathInString' : new RegExp( '{(' + jTDAL.regexpPatternPath + ')}' ),
-		'repeat' : new RegExp( '^[\\s]*([\\w-]+?)[\\s]+' + jTDAL.regexpPatternExpression + '[\\s]*$' ),
-		'content' : new RegExp( '^[\\s]*(?:(text|structure)[\\s]+)' + jTDAL.regexpPatternExpression + '[\\s]*$' ),
-		'attributes': new RegExp( '[\\s]*(?:(?:([\\w-]+?)[\\s]+' + jTDAL.regexpPatternExpression + '[\\s]*)(?:;[\s]*|$))', 'gy' )
-	}
-	static readonly keywords : string[] = [ 'ignore', 'condition', 'repeat', 'content', 'replace', 'attributes', 'omittag' ];
-	readonly document : JQuery<HTMLElement>;
-	selector : string = '';
+( function( exports ) {
+	class jTDAL {
+		static readonly regexpPatternPath: string = '(?:[\\w-\\/]*[\\w](?:[\\s]*\\|[\\s]*[\\w-\\/]*[\\w])*)';
+		static readonly regexpPatternPathAllowedBoolean: string = '(?:(?:!)?[\\w-\\/]*[\\w](?:[\\s]*\\|[\\s]*[\\w-\\/]*[\\w])*)';
+		static readonly regexpPatternExpression: string = '(STRING:[^;]+|' + jTDAL.regexpPatternPathAllowedBoolean + ')';
+		static readonly regexpPatternExpressionAllowedBoolean: string = '(STRING:[^;]+|' + jTDAL.regexpPatternPathAllowedBoolean + ')';
+		static readonly keywords: string[] = [ 'condition', 'repeat', 'content', 'replace', 'attributes', 'omittag' ];
+		static readonly regexp: { [ key: string ]: RegExp } = {
+			'pathString'      : new RegExp( '^[\\s]*STRING:(.*)$' ),
+			'tagWithTDAL'     : new RegExp( '<((?:\\w+:)?\\w+)(\\s+[^<>]+?)??\\s+data-tdal-(?:' + jTDAL.keywords.join( '|' ) +
+				')=([\'"])(.*?)\\3(\\s+[^<>]+?)??\\s*(\/)?>', 'i' ),
+			'tagWithAttribute': new RegExp( '<((?:\w+:)?\w+)(\s+[^<>]+?)??\s+%s=([\'"])(.*?)\\3(\s+[^<>]+?)??\s*(\/)?>', 'i' ),
+			'tagAttributes'   : new RegExp( '(?<=\\s)((?:[\\w-]+\:)?[\\w-]+)=(?:([\'"])(.*?)\\2|([^>\\s\'"]+))', 'gi' ),
+			'pathInString'    : new RegExp( '{(' + jTDAL.regexpPatternPath + ')}', 'g' ),
+			'condition'       : new RegExp( '^[\\s]*(\\!?)[\\s]*' + jTDAL.regexpPatternExpressionAllowedBoolean + '[\\s]*$' ),
+			'repeat'          : new RegExp( '^[\\s]*([\\w-]+?)[\\s]+(' + jTDAL.regexpPatternPath + ')[\\s]*$' ),
+			'content'         : new RegExp( '^[\\s]*(?:(text|structure)[\\s]+)?(' + jTDAL.regexpPatternExpressionAllowedBoolean + ')[\\s]*$' ),
+			'attributes'      : new RegExp( '[\\s]*(?:(?:([\\w-]+?)[\\s]+' + jTDAL.regexpPatternExpressionAllowedBoolean + '[\\s]*)(?:;[\\s]*|$))', 'g' ),
+			'attributesTDAL'  : new RegExp( '\\s*(data-tdal-[\\w-]+)=(?:([\'"])(.*?)\\2|([^>\\s\'"]+))', 'gi' )
+		};
 
-	static GetNearestChilds( item : JQuery<HTMLElement>, selector : JQuery.Selector ) : JQuery<HTMLElement>
-	{
-		// Shameless adapted from https://github.com/jstnjns/jquery-nearest
-		let returnValue : JQuery<HTMLElement> = $( );
-		item.children( ).each
-		(
-			function( )
-			{
-				let tmpValue = $( this ).filter( selector );
-				if( 0 < tmpValue.length )
-				{
-					returnValue = returnValue.add( $( this ).filter( selector ) );
-				}
-				tmpValue = $( this ).not( selector );
-				if( 0 < tmpValue.length )
-				{
-					returnValue = returnValue.add( jTDAL.GetNearestChilds( tmpValue, selector ) );
+		private static ExpressionResultToBoolean( result: string ): string {
+			let returnValue = '!(' + jTDAL.ExpressionResultNot( result ) + ')';
+			switch( result ) {
+				case 'true':
+				case 'false': {
+					returnValue = result;
+					break;
 				}
 			}
-		);
-		return( returnValue );
-	}
-
-	static IsArray( item : any ) : boolean
-	{
-		return( Array.isArray( item ) || ( item === Object( item ) && typeof item !== 'function' ) );
-	}
-
-	static ExpressionResultToBoolean( result : any ) : boolean
-	{
-		let returnValue : boolean = true;
-		if
-		(
-			( 'undefined' === ( typeof result ) )
-			||
-			( null === result )
-			||
-			( false === result )
-			||
-			( 0 === result )
-			||
-			( '' === result )
-			||
-			( Array.isArray( result ) && ( 0 === result.length ) )
-		)
-		{
-			returnValue = false;
+			return ( returnValue );
 		}
-		return( returnValue );
-	}
 
-	static ParsePath( pathExpression : string, globals : { [ key: string ]: any }, repeat : { [ key: string ]: any } )
-	{
-		let returnValue : any = undefined;
-		const paths = pathExpression.split( '|' );
-		const countFirstLevel = paths.length;
-		for( let indexFirstLevel = 0; indexFirstLevel < countFirstLevel; ++indexFirstLevel )
-		{
-			const path = paths[ indexFirstLevel ].trim( ).split( '/' );
-			switch( path[ 0 ] )
+		private static ExpressionResultNot( result: string ): string {
+			let returnValue = '"undefined"===typeof (t[i]=' + result +
+				')||false===t[i]||null===t[i]||(Array.isArray(t[i])&&1>t[i].length)||("object"===typeof t[i]&&1>Object.keys(t[i]).length)';
+			switch( result ) {
+				case 'true': {
+					returnValue = 'false';
+					break;
+				}
+				case 'false': {
+					returnValue = 'true';
+					break;
+				}
+			}
+			return ( returnValue );
+		}
+
+		private static ParsePath( pathExpression: string ): string {
+			let returnValue: string = '';
+			paths:
 			{
-				case 'REPEAT':
-				{
-					if( ( 3 == path.length ) )
-					{
-						if( ( 'undefined' !== ( typeof repeat[ 'REPEAT' ] ) ) )
-						{
-							if( ( 'undefined' !== ( typeof repeat[ 'REPEAT' ][ path[ 1 ] ] ) ) )
-							{
-								if( ( 'undefined' !== ( typeof repeat[ 'REPEAT' ][ path[ 1 ] ][ path[ 2 ] ] ) ) )
-								{
-									returnValue = repeat[ 'REPEAT' ][ path[ 1 ] ][ path[ 2 ] ];
-								}
+				const paths = pathExpression.split( '|' );
+				const countFirstLevel = paths.length;
+				for( let indexFirstLevel = 0; indexFirstLevel < countFirstLevel; ++indexFirstLevel ) {
+					if( jTDAL.regexp[ 'pathString' ].exec( paths[ indexFirstLevel ] ) ) {
+						let compiledString = '';
+						let index = paths[ indexFirstLevel ].indexOf( 'STRING:' ) + 7;
+						let match = null;
+						while( null != ( match = jTDAL.regexp[ 'pathInString' ].exec( paths[ indexFirstLevel ] ) ) ) {
+							if( 0 < ( match.index - index ) ) {
+								compiledString += JSON.stringify( String( paths[ indexFirstLevel ].substr( index, match.index - index ) ) );
 							}
+							if( 0 < compiledString.length ) {
+								compiledString += '+';
+							}
+							compiledString += '(' + jTDAL.ParsePath( match[ 1 ] ) + ')';
+							index = match[ 'index' ] + match[ 0 ].length;
 						}
-					}
-					break;
-				}
-				case 'NULL':
-				case 'FALSE':
-				{
-					returnValue = false;
-					break;
-				}
-				case 'DEFAULT':
-				case 'TRUE':
-				{
-					returnValue = true;
-					break;
-				}
-				default:
-				{
-					if( 0 < path.length )
-					{
-						const countSecondLevel = path.length;
-						returnValue = repeat;
-						for( let indexSecondLevel = 0; indexSecondLevel < countSecondLevel; ++indexSecondLevel )
-						{
-							if( 'undefined' !== ( typeof returnValue[ path[ indexSecondLevel ] ] ) )
-							{
-								returnValue = returnValue[ path[ indexSecondLevel ] ];
+						if( paths[ indexFirstLevel ].length > index ) {
+							if( 0 < compiledString.length ) {
+								compiledString += '+';
 							}
-							else
-							{
-								returnValue = undefined;
+							compiledString += JSON.stringify( String( paths[ indexFirstLevel ].substr( index ) ) );
+						}
+						returnValue += '(' + compiledString + ')';
+						break paths;
+					}
+					const path = paths[ indexFirstLevel ].trim().split( '/' );
+					let tmpValue = ( ( ( 0 < path.length ) && ( 0 < path[ 0 ].length ) ) ? ( '!' != path[ 0 ][ 0 ] ? path[ 0 ] : path[ 0 ].substr( 1 ) ) : null );
+					if( tmpValue ) {
+						switch( tmpValue ) {
+							case 'FALSE': {
+								if( '!' == path[ 0 ][ 0 ] ) {
+									returnValue += 'true';
+								} else {
+									returnValue += 'false';
+								}
+								break paths;
+							}
+							case 'TRUE': {
+								if( '!' == path[ 0 ][ 0 ] ) {
+									returnValue += 'false';
+								} else {
+									returnValue += 'true';
+								}
+								break paths;
+							}
+							case 'REPEAT': {
+								if( 3 == path.length ) {
+									returnValue += "'undefined'!==typeof r['REPEAT']&&";
+									returnValue += "'undefined'!==typeof r['REPEAT']['" + path[ 1 ] + "']&&";
+									let lastPath = "r['REPEAT']['" + path[ 1 ] + "']['" + path[ 2 ] + "']";
+									returnValue += "'undefined'!==typeof " + lastPath + "?";
+									returnValue += ( ( '!' == path[ 0 ][ 0 ] ) ? jTDAL.ExpressionResultNot( lastPath ) : lastPath ) + ":";
+								}
 								break;
 							}
-						}
-						if( 'undefined' === typeof( returnValue ) )
-						{
-							returnValue = globals;
-							for( let indexSecondLevel = 0; indexSecondLevel < countSecondLevel; ++indexSecondLevel )
-							{
-								if( 'undefined' !== ( typeof returnValue[ path[ indexSecondLevel ] ] ) )
-								{
-									returnValue = returnValue[ path[ indexSecondLevel ] ];
+							case 'GLOBAL': {
+								const countSecondLevel = path.length;
+								let lastPath: string = 'd';
+								for( let indexSecondLevel = 0; indexSecondLevel < countSecondLevel; ++indexSecondLevel ) {
+									if( 0 < indexSecondLevel ) {
+										returnValue += '&&';
+									}
+									lastPath = lastPath + "['" + path[ indexSecondLevel ] + "']";
+									returnValue += "'undefined'!==typeof " + lastPath;
 								}
-								else
-								{
-									returnValue = undefined;
-									break;
+								returnValue += "?" + ( ( '!' == path[ 0 ][ 0 ] ) ? jTDAL.ExpressionResultNot( lastPath ) : lastPath ) + ":";
+								break;
+							}
+							default: {
+								const countSecondLevel = path.length;
+								let lastPath: string = 'r';
+								for( let indexSecondLevel = 0; indexSecondLevel < countSecondLevel; ++indexSecondLevel ) {
+									if( 0 < indexSecondLevel ) {
+										returnValue += '&&';
+									}
+									lastPath = lastPath + "['" + path[ indexSecondLevel ] + "']";
+									returnValue += "'undefined'!==typeof " + lastPath;
 								}
+								returnValue += "?" + ( ( '!' == path[ 0 ][ 0 ] ) ? jTDAL.ExpressionResultNot( lastPath ) : lastPath ) + ":";
+								lastPath = 'd';
+								for( let indexSecondLevel = 0; indexSecondLevel < countSecondLevel; ++indexSecondLevel ) {
+									if( 0 < indexSecondLevel ) {
+										returnValue += '&&';
+									}
+									lastPath = lastPath + "['" + path[ indexSecondLevel ] + "']";
+									returnValue += "'undefined'!==typeof " + lastPath;
+								}
+								returnValue += "?" + ( ( '!' == path[ 0 ][ 0 ] ) ? jTDAL.ExpressionResultNot( lastPath ) : lastPath ) + ":";
 							}
 						}
 					}
 				}
+				returnValue += "false";
 			}
-			if( 'undefined' !== ( typeof returnValue ) )
-			{
-				break;
-			}
+			return returnValue;
 		}
-		return( returnValue );
-	}
 
-	static ParseExpression( expression : string, globals : { [ key: string ]: any }, repeat : { [ key: string ]: any } )
-	{
-		let returnValue : any = undefined;
-		const tmpArray : ( RegExpMatchArray | null ) = expression.match( /^[\s]*(STRING:)?(.*)$/ );
-		if( tmpArray && tmpArray[ 1 ] && 'STRING:' == tmpArray[ 1 ] )
-		{
-			let tmpValue : string = tmpArray[ 2 ];
-			let tmpMatch : ( RegExpExecArray | null ) = null;
-			while( tmpMatch = jTDAL.regexp[ 'pathInString' ].exec( tmpValue ) )
-			{
-				let tmpResult = this.ParsePath( tmpMatch[ 1 ], globals, repeat );
-				if( !tmpResult || ( true == tmpResult ) )
-				{
-					tmpResult = '';
-				}
-				while( -1 !== tmpValue.search( tmpMatch[ 0 ] ) )
-				{
-					tmpValue = tmpValue.replace( tmpMatch[ 0 ], tmpResult );
-				}
-			}
-			returnValue = tmpValue;
-		}
-		else
-		{
-			returnValue = jTDAL.ParsePath( expression, globals, repeat );
-		}
-		return( returnValue );
-	}
+		private static Parse( template: string ) {
+			let returnValue = '';
+			let tmpTDALTags = null;
 
-	constructor( document : HTMLElement )
-	{
-		this.document = $( document ).clone( ).wrapAll( '<tdal></tdal>' ).parent( );
-		for( let indexFirstLevel = 0, countFirstLevel = jTDAL.keywords.length; indexFirstLevel < countFirstLevel; ++indexFirstLevel )
-		{
-			this.selector += ( ( '' === this.selector ) ? '' : ',' ) + '[data-tdal-' + jTDAL.keywords[ indexFirstLevel ] + ']';
+			while( null !== ( tmpTDALTags = jTDAL.regexp[ 'tagWithTDAL' ].exec( template ) ) ) {
+				if( 0 < tmpTDALTags[ 'index' ] ) {
+					returnValue += "+" + JSON.stringify( String( template.substr( 0, tmpTDALTags[ 'index' ] ) ) );
+				}
+				template = template.substr( tmpTDALTags[ 'index' ] + tmpTDALTags[ 0 ].length );
+				let attributes: { [ key: string ]: RegExpExecArray } = {};
+				let tmpMatch: ( RegExpExecArray | null );
+				while( null !== ( tmpMatch = jTDAL.regexp[ 'tagAttributes' ].exec( tmpTDALTags[ 0 ] ) ) ) {
+					attributes[ tmpMatch[ 1 ] ] = tmpMatch;
+				}
+				let selfClosed = !!tmpTDALTags[ 6 ];
+				let closingPosition: number[] = [];
+				if( !selfClosed ) {
+					const endTag = new RegExp( '<(\\/)?' + tmpTDALTags[ 1 ] + '[^<>]*(?<!\\/)>', 'gi' );
+					let tags = 1;
+					while( ( 'undefined' === typeof closingPosition[ 0 ] ) && ( null !== ( tmpMatch = endTag.exec( template ) ) ) ) {
+						if( !tmpMatch[ 1 ] ) {
+							tags++;
+						} else {
+							tags--;
+						}
+						if( 0 == tags ) {
+							closingPosition = [ tmpMatch[ 'index' ], tmpMatch[ 0 ].length ];
+						}
+					}
+				}
+				// 0: js before tag open
+				// 1: tagOpen
+				// 2: js attributes (before closing tagOpen)
+				// 3: js after tag open
+				// 4: tagContent
+				// 5: js before tag close
+				// 6: tagClose
+				// 7: js after tag close
+				let current = [ '', tmpTDALTags[ 0 ], '', '', '', '', '', '' ];
+				if( 'undefined' !== typeof closingPosition[ 0 ] ) {
+					current[ 4 ] += jTDAL.Parse( template.substr( 0, closingPosition[ 0 ] ) );
+					current[ 6 ] += template.substr( closingPosition[ 0 ], closingPosition[ 1 ] );
+				}
+				tdal:
+				{
+					if( selfClosed || ( 'undefined' !== typeof closingPosition[ 0 ] ) ) {
+						if( 'undefined' !== typeof closingPosition[ 0 ] ) {
+							template = template.substr( closingPosition[ 0 ] + closingPosition[ 1 ] );
+						}
+						if( attributes[ 'data-tdal-condition' ] && ( jTDAL.regexp[ 'condition' ].exec( attributes[ 'data-tdal-condition' ][ 3 ] ) ) ) {
+							let tmpValue = jTDAL.ExpressionResultToBoolean( jTDAL.ParsePath( attributes[ 'data-tdal-condition' ][ 3 ] ) );
+							if( 'false' == tmpValue ) {
+								// the tag (and it's content) should be removed
+								break tdal;
+							} else if( 'true' != tmpValue ) {
+								current[ 0 ] += '+(undefined!=typeof (t[i]=' + tmpValue + ')&&null!=t[i]?""';
+								current[ 7 ] = ':"")' + current[ 7 ];
+							}
+						}
+						let tmpTDALrules;
+						if( attributes[ 'data-tdal-repeat' ] && ( tmpTDALrules = jTDAL.regexp[ 'repeat' ].exec( attributes[ 'data-tdal-repeat' ][ 3 ] ) ) ) {
+							let tmpValue = jTDAL.ParsePath( tmpTDALrules[ 2 ] );
+							if( ( 'false' == tmpValue ) || ( '""' == tmpValue ) || ( 'true' == tmpValue ) ) {
+								// 0 repetition, same as condition false
+								break tdal;
+							} else {
+								current[ 0 ] += '+(';
+								// current i = object
+								current[ 0 ] += 'false!==(t[i]=' + tmpValue + ')&&';
+								current[ 0 ] += '(!Array.isArray(t[i])||(t[i]=Object.assign({},t[i])))&&';
+								// current i = index for object loop ( i+=1 )
+								current[ 0 ] += '("object"===typeof t[i]&&0<Object.keys(t[i++]).length)&&(t[i++]=1)';
+								current[ 0 ] += '?';
+								current[ 0 ] += 'Object.keys(t[i-2]).reduce(function(o,e){';
+								current[ 0 ] += 'r["' + tmpTDALrules[ 1 ] + '"]=t[i-2][e];';
+								current[ 0 ] += 'r["REPEAT"]["' + tmpTDALrules[ 1 ] + '"]={};';
+								current[ 0 ] += 'r["REPEAT"]["' + tmpTDALrules[ 1 ] + '"]["index"]=e;';
+								// current i = free index ( i+=1 )
+								current[ 0 ] += 'r["REPEAT"]["' + tmpTDALrules[ 1 ] + '"]["number"]=t[i-1]++;';
+								current[ 0 ] += 'r["REPEAT"]["' + tmpTDALrules[ 1 ] + '"]["even"]=0==(r["REPEAT"]["' + tmpTDALrules[ 1 ] + '"]["number"]%2);';
+								current[ 0 ] += 'r["REPEAT"]["' + tmpTDALrules[ 1 ] + '"]["odd"]=1==(r["REPEAT"]["' + tmpTDALrules[ 1 ] + '"]["number"]%2);';
+								current[ 0 ] += 'r["REPEAT"]["' + tmpTDALrules[ 1 ] + '"]["first"]=1==r["REPEAT"]["' + tmpTDALrules[ 1 ] + '"]["number"];';
+								current[ 0 ] += 'r["REPEAT"]["' + tmpTDALrules[ 1 ] + '"]["length"]=Object.keys(t[i-2]);';
+								current[ 0 ] += 'r["REPEAT"]["' + tmpTDALrules[ 1 ] + '"]["last"]=r["REPEAT"]["' + tmpTDALrules[ 1 ] + '"]["length"]==r["REPEAT"]["' +
+									tmpTDALrules[ 1 ] + '"]["number"];';
+								current[ 0 ] += 'return o';
+								// resetting i
+								current[ 7 ] = ';},""):"")+((i-=2)?"":"")' + current[ 7 ];
+							}
+						}
+						if( attributes[ 'data-tdal-content' ] && ( tmpTDALrules = jTDAL.regexp[ 'content' ].exec( attributes[ 'data-tdal-content' ][ 3 ] ) ) ) {
+							let tmpValue = jTDAL.ParsePath( tmpTDALrules[ 2 ] );
+							if( 'false' == tmpValue ) {
+								current[ 4 ] = '';
+							} else if( 'true' != tmpValue ) {
+								let encoding = [ '', '' ];
+								if( 'structure' != tmpTDALrules[ 1 ] ) {
+									encoding[ 0 ] = '(new String(';
+									encoding[ 1 ] = ')).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;")';
+								}
+								current[ 3 ] += '+(false !== (t[i]=' + tmpValue + ')&&("string"===typeof t[i]||("number"===typeof t[i]&&!isNaN(t[i])))?' + encoding[ 0 ] +
+									't[i]' + encoding[ 1 ] + ':(true!==t[i]?"":""';
+								current[ 5 ] += '))';
+							}
+						} else if( attributes[ 'data-tdal-replace' ] && ( tmpTDALrules = jTDAL.regexp[ 'content' ].exec( attributes[ 'data-tdal-replace' ][ 3 ] ) ) ) {
+							let tmpValue = jTDAL.ParsePath( tmpTDALrules[ 2 ] );
+							if( 'false' == tmpValue ) {
+								current[ 1 ] = '';
+								current[ 4 ] = '';
+								current[ 6 ] = '';
+							} else if( 'true' != tmpValue ) {
+								let encoding = [ '', '' ];
+								if( 'structure' != tmpTDALrules[ 1 ] ) {
+									encoding[ 0 ] = '(new String(';
+									encoding[ 1 ] = ')).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;")';
+								}
+								current[ 0 ] += '+(false!==(t[i]=' + tmpValue + ')&&("string"===typeof t[i]||("number"===typeof t[i]&&!isNaN(t[i])))?' + encoding[ 0 ] +
+									't[i]' + encoding[ 1 ] + ':(true!==t[i]?"":""';
+								current[ 7 ] = '))' + current[ 7 ];
+							}
+						}
+						if( attributes[ 'data-tdal-attributes' ] && ( tmpTDALrules = jTDAL.regexp[ 'attributes' ].exec( attributes[ 'data-tdal-attributes' ][ 3 ] ) ) ) {
+							while( null !== tmpTDALrules ) {
+								let tmpValue = jTDAL.ParsePath( tmpTDALrules[ 2 ] );
+								if( "false" === tmpValue ) {
+									if( 'undefined' !== ( typeof attributes[ tmpTDALrules[ 1 ] ] ) ) {
+										current[ 1 ] = current[ 1 ].replace( new RegExp( '\\s*' + tmpTDALrules[ 1 ] + '(?:=([\'"]).*\\1)?' ), '' );
+									}
+								} else if( "true" !== tmpValue ) {
+									current[ 2 ] += '+(false!==(t[i]=' + tmpValue + ')&&("string"===typeof t[i]||("number"===typeof t[i]&&!isNaN(t[i])))?" ' + tmpTDALrules[ 1 ] +
+										'=\\""+t[i]+"\\"":(true!==t[i]?"":"';
+									if( 'undefined' !== ( typeof attributes[ tmpTDALrules[ 1 ] ] ) ) {
+										current[ 1 ] = current[ 1 ].replace( new RegExp( '\\s*' + tmpTDALrules[ 1 ] + '(?:=([\'"]).*\\1)?' ), '' );
+										current[ 2 ] += tmpTDALrules[ 1 ] + '"' +
+											( ( ( 'undefined' !== ( typeof attributes[ tmpTDALrules[ 1 ] ][ 3 ] ) ) && ( '' != attributes[ tmpTDALrules[ 1 ] ][ 3 ] ) ) ? '+"="+' +
+												JSON.stringify( String( attributes[ tmpTDALrules[ 1 ] ][ 2 ] + attributes[ tmpTDALrules[ 1 ] ][ 3 ] +
+													attributes[ tmpTDALrules[ 1 ] ][ 2 ] ) ) : "" );
+									} else {
+										current[ 2 ] += '"';
+									}
+									current[ 2 ] += '))';
+								}
+								tmpTDALrules = jTDAL.regexp[ 'attributes' ].exec( attributes[ 'data-tdal-attributes' ][ 3 ] );
+							}
+						}
+						if( attributes[ 'data-tdal-omittag' ] && ( jTDAL.regexp[ 'condition' ].exec( attributes[ 'data-tdal-omittag' ][ 3 ] ) ) ) {
+							let tmpValue = jTDAL.ExpressionResultToBoolean( jTDAL.ParsePath( attributes[ 'data-tdal-omittag' ][ 3 ] ) );
+							if( 'true' == tmpValue ) {
+								current[ 1 ] = '';
+								current[ 6 ] = '';
+							} else if( 'false' != tmpValue ) {
+								current[ 0 ] += '+(' + tmpValue + '?"":""';
+								current[ 3 ] = ')' + current[ 3 ];
+								current[ 5 ] += '+(' + tmpValue + '?"":""';
+								current[ 7 ] = ')' + current[ 7 ];
+							}
+						}
+					}
+					while( null !== ( tmpMatch = jTDAL.regexp[ 'attributesTDAL' ].exec( current[ 1 ] ) ) ) {
+						current[ 1 ] = current[ 1 ].replace( jTDAL.regexp[ 'attributesTDAL' ], '' );
+					}
+				}
+				current[ 1 ] = current[ 1 ].replace( /\s*\/?>$/, '' );
+				if( selfClosed && !( 'undefined' !== typeof closingPosition[ 0 ] ) && ( ( '' != current[ 4 ] ) || ( '' != current[ 3 ] ) || ( '' != current[ 5 ] ) ) ) {
+					// if is a tag selfclosed, and if it have contents, i should close it
+					current[ 6 ] = '</' + tmpTDALTags[ 1 ] + '>';
+					selfClosed = false;
+				}
+				returnValue += current[ 0 ] + '+' + JSON.stringify( String( current[ 1 ] ) ) + current[ 2 ] +
+					( ( '' != current[ 1 ] ) ? '+"' + ( selfClosed ? '/' : '' ) + '>"' : '' ) + current[ 3 ] + current[ 4 ] + current[ 5 ] + '+' +
+					JSON.stringify( String( current[ 6 ] ) ) + current[ 7 ];
+			}
+			returnValue += '+' + JSON.stringify( String( template ) );
+			return ( returnValue );
 		}
-	}
 
-	private Parse( element : JQuery<HTMLElement>, globals : { [ key: string ]: any }, repeat : { [ key: string ]: any } = { } )
-	{
-		let removed : boolean = false;
-		let tmpTDALAttribute : string = element.data( 'tdal-ignore' );
-		let tmpBoolean = true;
-		if( 'undefined' !== typeof tmpTDALAttribute )
-		{
-			element.removeData( 'tdal-ignore' );
-			element.removeAttr( 'data-tdal-ignore' );
-			const tmpMatches : ( RegExpMatchArray | null ) =  tmpTDALAttribute.match( jTDAL.regexp[ 'condition' ] );
-			if( tmpMatches )
-			{
-				removed = jTDAL.ExpressionResultToBoolean( jTDAL.ParseExpression( tmpMatches[ 2 ], globals, repeat ) );
-				if( '!' == tmpMatches[ 1 ] )
-				{
-					removed = !tmpBoolean;
-				}
-			}
-		}
-		if( !removed )
-		{
-			tmpTDALAttribute = element.data( 'tdal-condition' );
-			if( 'undefined' !== typeof tmpTDALAttribute )
-			{
-				element.removeData( 'tdal-condition' );
-				element.removeAttr( 'data-tdal-condition' );
-				tmpBoolean = true;
-				const tmpMatches : ( RegExpMatchArray | null ) =  tmpTDALAttribute.match( jTDAL.regexp[ 'condition' ] );
-				if( tmpMatches )
-				{
-					tmpBoolean = jTDAL.ExpressionResultToBoolean( jTDAL.ParseExpression( tmpMatches[ 2 ], globals, repeat ) );
-					if( '!' == tmpMatches[ 1 ] )
-					{
-						tmpBoolean = !tmpBoolean;
-					}
-					if( false === tmpBoolean )
-					{
-						element.remove( );
-						removed = true;
-					}
-				}
-			}
-			if( !removed )
-			{
-				tmpTDALAttribute = element.data( 'tdal-repeat' );
-				if( 'undefined' !== typeof tmpTDALAttribute )
-				{
-					element.removeData( 'tdal-repeat' );
-					element.removeAttr( 'data-tdal-repeat' );
-					const tmpMatches : ( RegExpMatchArray | null ) =  tmpTDALAttribute.match( jTDAL.regexp[ 'repeat' ] );
-					if( tmpMatches )
-					{
-						const tmpValue = jTDAL.ParseExpression( tmpMatches[ 2 ], globals, repeat );
-						if( Array.isArray( tmpValue ) )
-						{
-							let currentRepeat = Object.assign( {}, repeat );
-							for( let indexFirstLevel : number = 0, countFirstLevel : number = tmpValue.length; indexFirstLevel < countFirstLevel; ++indexFirstLevel )
-							{
-								let tmpNode : JQuery<HTMLElement> = element.clone( );
-								currentRepeat[ tmpMatches[ 1 ] ] = tmpValue[ indexFirstLevel ];
-								currentRepeat[ 'REPEAT' ][ tmpMatches[ 1 ] ] =
-								{
-									'index' : indexFirstLevel,
-									'number' : ( indexFirstLevel + 1 ),
-									'even' : ( 0 == ( ( indexFirstLevel + 1 ) % 2 ) ),
-									'odd' : ( 1 == ( ( indexFirstLevel + 1 ) % 2 ) ),
-									'start' : ( 0 == indexFirstLevel ),
-									'end' : ( ( countFirstLevel - 1 ) == indexFirstLevel ),
-									'length' : countFirstLevel
-								};
-								this.Parse( tmpNode, globals, currentRepeat );
-								element.before( tmpNode );
-							}
-						}
-						element.remove( );
-						removed = true;
-					}
-				}
-				if( !removed )
-				{
-					tmpTDALAttribute = element.data( 'tdal-content' );
-					if( 'undefined' !== typeof tmpTDALAttribute )
-					{
-						element.removeData( 'tdal-content' );
-						element.removeAttr( 'data-tdal-content' );
-						let tmpMatches : ( RegExpMatchArray | null ) =  tmpTDALAttribute.match( jTDAL.regexp[ 'content' ] );
-						if( tmpMatches )
-						{
-							let tmpValue = jTDAL.ParseExpression( tmpMatches[ 2 ], globals, repeat );
-							switch( tmpMatches[ 1 ] )
-							{
-								case 'structure':
-								{
-									if( ( 'undefined' === typeof( tmpValue ) ) || ( false === tmpValue ) || ( null == tmpValue ) )
-									{
-										tmpValue = '';
-									}
-									if( true !== tmpValue )
-									{
-										element.html( tmpValue );
-									}
-									break;
-								}
-								case 'text':
-								{
-									if( ( 'undefined' === typeof( tmpValue ) ) || ( false === tmpValue ) || ( null == tmpValue ) )
-									{
-										tmpValue = '';
-									}
-									if( true !== tmpValue )
-									{
-										element.text( tmpValue );
-									}
-									break;
-								}
-							}
-						}
-					}
-					tmpTDALAttribute = element.data( 'tdal-replace' );
-					if( 'undefined' !== typeof tmpTDALAttribute )
-					{
-						element.removeData( 'tdal-content' );
-						element.removeAttr( 'data-tdal-content' );
-						let tmpMatches : ( RegExpMatchArray | null ) =  tmpTDALAttribute.match( jTDAL.regexp[ 'content' ] );
-						if( tmpMatches )
-						{
-							let tmpValue = jTDAL.ParseExpression( tmpMatches[ 2 ], globals, repeat );
-							switch( tmpMatches[ 1 ] )
-							{
-								case 'structure':
-								{
-									if( ( 'undefined' === typeof( tmpValue ) ) || ( false === tmpValue ) || ( null == tmpValue ) )
-									{
-										tmpValue = '';
-									}
-									if( true !== tmpValue )
-									{
-										element.prop( 'outerHTML', tmpValue );
-									}
-									break;
-								}
-								case 'text':
-								{
-									if( ( 'undefined' === typeof( tmpValue ) ) || ( false === tmpValue ) || ( null == tmpValue ) )
-									{
-										tmpValue = '';
-									}
-									if( true !== tmpValue )
-									{
-										element.prop( 'outerText', tmpValue );
-									}
-									break;
-								}
-							}
-						}
-					}
-					tmpTDALAttribute = element.data( 'tdal-attributes' );
-					if( 'undefined' !== typeof tmpTDALAttribute )
-					{
-						element.removeData( 'tdal-attributes' );
-						element.removeAttr( 'data-tdal-attributes' );
-						let tmpMatch : ( RegExpExecArray | null ) = null;
-						while( tmpMatch = jTDAL.regexp[ 'attributes' ].exec( tmpTDALAttribute ) )
-						{
-							let tmpValue = jTDAL.ParseExpression( tmpMatch[ 2 ], globals, repeat );
-							if( ( 'undefined' === typeof( tmpValue ) ) || ( false === tmpValue ) || ( null == tmpValue ) )
-							{
-								element.removeAttr( tmpMatch[ 1 ] );
-							}
-							else
-							{
-								if( true !== tmpValue )
-								{
-									element.attr( tmpMatch[ 1 ], tmpValue );
-								}
-							}
-						}							
-					}
-					if( 0 < element.children( ).length )
-					{
-						let tmpValue : JQuery<HTMLElement> = jTDAL.GetNearestChilds( element, this.selector );
-						let countFirstLevel = tmpValue.length;
-						for( let indexFirstLevel = 0; indexFirstLevel < countFirstLevel; ++indexFirstLevel )
-						{
-							this.Parse( $( tmpValue[ indexFirstLevel ] ), globals, repeat );			
-						}
-					}
-					tmpTDALAttribute = element.data( 'tdal-omittag' );
-					if( 'undefined' !== typeof tmpTDALAttribute )
-					{
-						element.removeData( 'tdal-omittag' );
-						element.removeAttr( 'data-tdal-omittag' );
-						tmpBoolean = true;
-						const tmpMatches : ( RegExpMatchArray | null ) =  tmpTDALAttribute.match( jTDAL.regexp[ 'condition' ] );
-						if( tmpMatches )
-						{
-							tmpBoolean = jTDAL.ExpressionResultToBoolean( jTDAL.ParseExpression( tmpMatches[ 2 ], globals, repeat ) );
-							if( '!' == tmpMatches[ 1 ] )
-							{
-								tmpBoolean = !tmpBoolean;
-							}
-							if( tmpBoolean )
-							{
-								element.contents( ).unwrap( );
-							}
-						}
-					}
-				}
-			}
+		public static Compile( template: string ) {
+			let returnValue = ( 'let r={"REPEAT":{}},i=0,t=[]; return ""' +
+				jTDAL.Parse( template ) ).replace( /(?<!\\)""\+/, '' ).replace( /(?<!\\)"\+"/g, '' ).replace( /\+""$/, '' ) + ';';
+			return new Function( 'd', returnValue );
 		}
 	}
 
-	public Render( globals : { [ key: string ]: any } = { } )
-	{
-		let tmpValue : JQuery<HTMLElement> = jTDAL.GetNearestChilds( this.document, this.selector );
-		let countFirstLevel = tmpValue.length;
-		for( let indexFirstLevel = 0; indexFirstLevel < countFirstLevel; ++indexFirstLevel )
-		{
-			this.Parse( $( tmpValue[ indexFirstLevel ] ), globals, { 'REPEAT' : { } } );			
-		}
-		return( this.document.children( ) );
-	}
-}
-
-(
-	function( $ : JQueryStatic )
-	{
-		$.fn.extend( { jTDAL : function( ) { return( new jTDAL( <HTMLElement> this ) ); } } );
-	}
-)( jQuery );
+	exports.Compile = jTDAL.Compile;
+	// @ts-ignore
+} )( typeof exports === 'undefined' ? this[ 'jTDAL' ] = {} : exports );
