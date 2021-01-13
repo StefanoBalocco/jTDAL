@@ -61,11 +61,11 @@
 						let index = paths[ indexFirstLevel ].indexOf( 'STRING:' ) + 7;
 						let match = null;
 						while( null != ( match = jTDAL.regexp[ 'pathInString' ].exec( paths[ indexFirstLevel ] ) ) ) {
-							if( 0 < ( match.index - index ) ) {
-								compiledString += JSON.stringify( String( paths[ indexFirstLevel ].substr( index, match.index - index ) ) );
-							}
 							if( 0 < compiledString.length ) {
 								compiledString += '+';
+							}
+							if( 0 < ( match.index - index ) ) {
+								compiledString += JSON.stringify( String( paths[ indexFirstLevel ].substr( index, match.index - index ) ) ) + '+';
 							}
 							compiledString += '(' + jTDAL.ParsePath( match[ 1 ] ) + ')';
 							index = match[ 'index' ] + match[ 0 ].length;

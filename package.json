@@ -6,21 +6,21 @@
     "type": "git",
     "url": "https://github.com/StefanoBalocco/jTDAL.git"
   },
-  "version": "1.0",
-  "keywords": [],
+  "version": "2.0",
+  "keywords": [ "template engine", "tal" ],
   "author": "Stefano Balocco <stefano.balocco@gmail.com>",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/StefanoBalocco/jTDAL/issues"
   },
   "homepage": "https://github.com/StefanoBalocco/jTDAL",
-  "dependencies": {
-  },
+  "dependencies": {},
   "scripts": {
     "build": "node_modules/typescript/bin/tsc",
     "uglify": "node_modules/uglify-es/bin/uglifyjs jTDAL.js -o jTDAL.min.js -m -c"
   },
   "devDependencies": {
+    "gulp": "^4.0.2",
     "typescript": "^3.9.5",
     "uglify-es": "^3.3.9"
   }
