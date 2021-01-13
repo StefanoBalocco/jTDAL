@@ -1,6 +1,6 @@
 {
-  "name": "jTDAL",
-  "description": "JQuery small template engine based on Zope TAL, using data attributes",
+  "name": "jtdal",
+  "description": "Small template engine based on Zope TAL, using data attributes",
   "main": "jTDAL.min.js",
   "repository": {
     "type": "git",
