@@ -1,7 +1,7 @@
 # jTDAL
-JQuery small template engine based on Zope TAL, using data attributes
+Small template engine based on Zope TAL, using data attributes
 
-Written in Typescrip, for node & browser.
+Written in Typescript, for node & browser.
 
 ## Why another template engine?
 Because I didn't found a fast javascript template engine based on attributes.
