@@ -86,7 +86,7 @@ Replace the tag and its content with the result of the path-expression. Mutually
 
 If the result of the path expression is "false", the tag and its contents will be removed (like a false data-tdal-condition). If is "true", the default content will be kept.
 
-### Attributes
+### Attribute
     data-tdal-attribute="href link | STRING:https://www.example.org/{page}; class STRING:link-color-blue"
 
 Add an attribute or replace the content of an attribute with the result of the path expression. If the expression value is "true" current attribute content will be kept.
