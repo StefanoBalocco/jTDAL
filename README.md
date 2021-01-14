@@ -12,7 +12,7 @@ Using attributes the page can be designed with any WYSIWYG editor or preview in 
     <script type="text/javascript" src="jTDAL.js"></script>
 or
 
-    const jTDAL = require( './jTDAL.js' );
+    const jTDAL = require( 'jtdal.js' );
 
     const t = jTDAL.Compile( template );
     let result= t( data ); 
