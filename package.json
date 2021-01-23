@@ -2,11 +2,12 @@
   "name": "jtdal",
   "description": "Small template engine based on Zope TAL, using data attributes",
   "main": "jTDAL.min.js",
+  "types": "jTDAL.d.ts",
   "repository": {
     "type": "git",
     "url": "https://github.com/StefanoBalocco/jTDAL.git"
   },
-  "version": "2.0.2",
+  "version": "2.0.3",
   "keywords": [
     "template engine",
     "tal"
@@ -19,11 +20,10 @@
   "homepage": "https://github.com/StefanoBalocco/jTDAL",
   "dependencies": {},
   "scripts": {
-    "build": "node_modules/typescript/bin/tsc",
-    "uglify": "node_modules/uglify-es/bin/uglifyjs jTDAL.js -o jTDAL.min.js -m -c"
+    "build": "node_modules/typescript/bin/tsc && node_modules/uglify-es/bin/uglifyjs jTDAL.js -o jTDAL.min.js -m -c"
   },
   "devDependencies": {
-    "typescript": "^3.9.5",
-    "uglify-es": "^3.3.9"
+    "typescript": "4",
+    "uglify-es": "3"
   }
 }
