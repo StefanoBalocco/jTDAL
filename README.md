@@ -48,9 +48,10 @@ If the path expression supports strings, you can append, as last path, STRING:th
 
 In a boolean check, empty lists or empty string will be considered "false".
 
-There are also special keywords availabe in the path expression: TRUE and FALSE.
+There are also special keywords availabe in the path expression: TRUE and FALSE. When one of those is reached, the expression parsing will stop.
 
-    FALSE | always/reached | TRUE | never/reached
+    FALSE | never/reached
+    TRUE | never/reached
 
 ### Condition
     data-tdal-condition="!exists | !TRUE | FALSE | element"
