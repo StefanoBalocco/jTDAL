@@ -19,19 +19,26 @@ var jTDAL;
         'attributesTDAL': new RegExp('\\s*(data-tdal-[\\w-]+)=(?:([\'"])(.*?)\\2|([^>\\s\'"]+))', 'gi')
     };
     function ExpressionResultToBoolean(result) {
-        let returnValue = '!(' + ExpressionResultNot(result) + ')';
+        let returnValue = '';
         switch (result) {
             case 'true':
             case 'false': {
                 returnValue = result;
                 break;
             }
+            default: {
+                if (result.startsWith('!(')) {
+                    returnValue = '!' + result;
+                }
+                else {
+                    returnValue = '!(' + ExpressionResultNot(result) + ')';
+                }
+            }
         }
         return (returnValue);
     }
     function ExpressionResultNot(result) {
-        let returnValue = '"undefined"===typeof (t[i]=' + result +
-            ')||false===t[i]||null===t[i]||(Array.isArray(t[i])&&1>t[i].length)||("object"===typeof t[i]&&1>Object.keys(t[i]).length)';
+        let returnValue = '"undefined"===typeof (t[i++]=' + result + ')||false===t[--i]||null===t[i]||(Array.isArray(t[i])&&1>t[i].length)||("object"===typeof t[i]&&1>Object.keys(t[i]).length)';
         switch (result) {
             case 'true': {
                 returnValue = 'false';
@@ -46,6 +53,7 @@ var jTDAL;
     }
     function ParsePath(pathExpression) {
         let returnValue = '';
+        let openedBracket = 0;
         paths: {
             const paths = pathExpression.split('|');
             const countFirstLevel = paths.length;
@@ -97,7 +105,8 @@ var jTDAL;
                         }
                         case 'REPEAT': {
                             if (3 == path.length) {
-                                returnValue += "'undefined'!==typeof r['REPEAT']&&";
+                                openedBracket++;
+                                returnValue += "('undefined'!==typeof r['REPEAT']&&";
                                 returnValue += "'undefined'!==typeof r['REPEAT']['" + path[1] + "']&&";
                                 let lastPath = "r['REPEAT']['" + path[1] + "']['" + path[2] + "']";
                                 returnValue += "'undefined'!==typeof " + lastPath + "?";
@@ -108,6 +117,8 @@ var jTDAL;
                         case 'GLOBAL': {
                             const countSecondLevel = path.length;
                             let lastPath = 'd';
+                            openedBracket++;
+                            returnValue += '(';
                             for (let indexSecondLevel = 0; indexSecondLevel < countSecondLevel; ++indexSecondLevel) {
                                 if (0 < indexSecondLevel) {
                                     returnValue += '&&';
@@ -121,6 +132,8 @@ var jTDAL;
                         default: {
                             const countSecondLevel = path.length;
                             let lastPath = 'r';
+                            openedBracket++;
+                            returnValue += '(';
                             for (let indexSecondLevel = 0; indexSecondLevel < countSecondLevel; ++indexSecondLevel) {
                                 if (0 < indexSecondLevel) {
                                     returnValue += '&&';
@@ -128,8 +141,10 @@ var jTDAL;
                                 lastPath = lastPath + "['" + path[indexSecondLevel] + "']";
                                 returnValue += "'undefined'!==typeof " + lastPath;
                             }
-                            returnValue += "?" + (('!' == path[0][0]) ? ExpressionResultNot(lastPath) : lastPath) + ":";
+                            returnValue += "?" + (('!' == path[0][0]) ? '(' + ExpressionResultNot(lastPath) + ')' : lastPath) + ":";
                             lastPath = 'd';
+                            openedBracket++;
+                            returnValue += '(';
                             for (let indexSecondLevel = 0; indexSecondLevel < countSecondLevel; ++indexSecondLevel) {
                                 if (0 < indexSecondLevel) {
                                     returnValue += '&&';
@@ -143,6 +158,9 @@ var jTDAL;
                 }
             }
             returnValue += "false";
+        }
+        for (let indexFirstLevel = 0; indexFirstLevel < openedBracket; indexFirstLevel++) {
+            returnValue += ')';
         }
         return returnValue;
     }
@@ -192,7 +210,7 @@ var jTDAL;
                             break tdal;
                         }
                         else if ('true' != tmpValue) {
-                            current[0] += '+(undefined!=typeof (t[i]=' + tmpValue + ')&&null!=t[i]?""';
+                            current[0] += '+(true===' + tmpValue + '?""';
                             current[7] = ':"")' + current[7];
                         }
                     }
