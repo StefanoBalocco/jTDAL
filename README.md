@@ -23,7 +23,7 @@ The engine support the following data-attribute (the order isn't casual, is the 
 * data-tdal-repeat="repeat-variabile path-expression"
 * data-tdal-content="path-expression-string-allowed" OR
 * data-tdal-replace="path-expression-string-allowed"
-* data-tdal-attribute="attribute path-expression-string-allowed[; attributes path-expression-string-allowed]"
+* data-tdal-attributes="attribute path-expression-string-allowed[; attributes path-expression-string-allowed]"
 * data-tdal-omittag="path-expression-boolean-mod-allowed"
 
 I plan the implement the jTDAL equivalent of the TAL's METAL (partials in mustache) in a future update.
@@ -88,7 +88,7 @@ Replace the tag and its content with the result of the path-expression. Mutually
 If the result of the path expression is "false", the tag and its contents will be removed (like a false data-tdal-condition). If is "true", the default content will be kept.
 
 ### Attribute
-    data-tdal-attribute="href link | STRING:https://www.example.org/{page}; class STRING:link-color-blue"
+    data-tdal-attributes="href link | STRING:https://www.example.org/{page}; class STRING:link-color-blue"
 
 Add an attribute or replace the content of an attribute with the result of the path expression. If the expression value is "true" current attribute content will be kept.
 

@@ -280,14 +280,14 @@ var jTDAL;
                             let tmpValue = ParsePath(tmpTDALrules[2]);
                             if ("false" === tmpValue) {
                                 if ('undefined' !== (typeof attributes[tmpTDALrules[1]])) {
-                                    current[1] = current[1].replace(new RegExp('\\s*' + tmpTDALrules[1] + '(?:=([\'"]).*\\1)?'), '');
+                                    current[1] = current[1].replace(new RegExp('\\s*' + tmpTDALrules[1] + '(?:=([\'"]).*?\\1)?'), '');
                                 }
                             }
                             else if ("true" !== tmpValue) {
                                 current[2] += '+(false!==(t[i]=' + tmpValue + ')&&("string"===typeof t[i]||("number"===typeof t[i]&&!isNaN(t[i])))?" ' + tmpTDALrules[1] +
                                     '=\\""+t[i]+"\\"":(true!==t[i]?"":"';
                                 if ('undefined' !== (typeof attributes[tmpTDALrules[1]])) {
-                                    current[1] = current[1].replace(new RegExp('\\s*' + tmpTDALrules[1] + '(?:=([\'"]).*\\1)?'), '');
+                                    current[1] = current[1].replace(new RegExp('\\s*' + tmpTDALrules[1] + '(?:=([\'"]).*?\\1)?'), '');
                                     current[2] += tmpTDALrules[1] + '"' +
                                         ((('undefined' !== (typeof attributes[tmpTDALrules[1]][3])) && ('' != attributes[tmpTDALrules[1]][3])) ? '+"="+' +
                                             JSON.stringify(String(attributes[tmpTDALrules[1]][2] + attributes[tmpTDALrules[1]][3] +

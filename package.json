@@ -20,10 +20,10 @@
   "homepage": "https://github.com/StefanoBalocco/jTDAL",
   "dependencies": {},
   "scripts": {
-    "build": "node_modules/typescript/bin/tsc && node_modules/uglify-es/bin/uglifyjs jTDAL.js -o jTDAL.min.js -m -c"
+    "build": "node_modules/typescript/bin/tsc && node_modules/terser/bin/terser jTDAL.js -o jTDAL.min.js -m -c --mangle-props regex=/^_/"
   },
   "devDependencies": {
-    "typescript": "4",
-    "uglify-es": "3"
+    "terser": "5",
+    "typescript": "4"
   }
 }
