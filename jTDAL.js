@@ -12,10 +12,10 @@ var jTDAL;
         'tagWithAttribute': new RegExp('<((?:\w+:)?\w+)(\s+[^<>]+?)??\s+%s=([\'"])(.*?)\\3(\s+[^<>]+?)??\s*(\/)?>', 'i'),
         'tagAttributes': new RegExp('(?<=\\s)((?:[\\w-]+\:)?[\\w-]+)=(?:([\'"])(.*?)\\2|([^>\\s\'"]+))', 'gi'),
         'pathInString': new RegExp('{(' + regexpPatternPath + ')}', 'g'),
-        'condition': new RegExp('^[\\s]*(\\!?)[\\s]*' + regexpPatternExpressionAllowedBoolean + '[\\s]*$'),
+        'condition': new RegExp('^[\\s]*(\\!?)[\\s]*(' + regexpPatternExpressionAllowedBoolean + ')[\\s]*$'),
         'repeat': new RegExp('^[\\s]*([\\w-]+?)[\\s]+(' + regexpPatternPath + ')[\\s]*$'),
         'content': new RegExp('^[\\s]*(?:(text|structure)[\\s]+)?(' + regexpPatternExpressionAllowedBoolean + ')[\\s]*$'),
-        'attributes': new RegExp('[\\s]*(?:(?:([\\w-]+?)[\\s]+' + regexpPatternExpressionAllowedBoolean + '[\\s]*)(?:;[\\s]*|$))', 'g'),
+        'attributes': new RegExp('[\\s]*(?:(?:([\\w-]+?)[\\s]+(' + regexpPatternExpressionAllowedBoolean + ')[\\s]*)(?:;[\\s]*|$))', 'g'),
         'attributesTDAL': new RegExp('\\s*(data-tdal-[\\w-]+)=(?:([\'"])(.*?)\\2|([^>\\s\'"]+))', 'gi')
     };
     function ExpressionResultToBoolean(result) {
@@ -53,114 +53,119 @@ var jTDAL;
     }
     function ParsePath(pathExpression) {
         let returnValue = '';
-        let openedBracket = 0;
-        paths: {
-            const paths = pathExpression.split('|');
-            const countFirstLevel = paths.length;
-            for (let indexFirstLevel = 0; indexFirstLevel < countFirstLevel; ++indexFirstLevel) {
-                if (regexp['pathString'].exec(paths[indexFirstLevel])) {
-                    let compiledString = '';
-                    let index = paths[indexFirstLevel].indexOf('STRING:') + 7;
-                    let match = null;
-                    while (null != (match = regexp['pathInString'].exec(paths[indexFirstLevel]))) {
-                        if (0 < compiledString.length) {
-                            compiledString += '+';
+        if (pathExpression) {
+            let openedBracket = 0;
+            paths: {
+                const paths = pathExpression.split('|');
+                const countFirstLevel = paths.length;
+                for (let indexFirstLevel = 0; indexFirstLevel < countFirstLevel; ++indexFirstLevel) {
+                    if (regexp['pathString'].exec(paths[indexFirstLevel])) {
+                        let compiledString = '';
+                        let index = paths[indexFirstLevel].indexOf('STRING:') + 7;
+                        let match = null;
+                        while (null != (match = regexp['pathInString'].exec(paths[indexFirstLevel]))) {
+                            if (0 < compiledString.length) {
+                                compiledString += '+';
+                            }
+                            if (0 < (match.index - index)) {
+                                compiledString += JSON.stringify(String(paths[indexFirstLevel].substr(index, match.index - index))) + '+';
+                            }
+                            compiledString += '(' + ParsePath(match[1]) + ')';
+                            index = match['index'] + match[0].length;
                         }
-                        if (0 < (match.index - index)) {
-                            compiledString += JSON.stringify(String(paths[indexFirstLevel].substr(index, match.index - index))) + '+';
+                        if (paths[indexFirstLevel].length > index) {
+                            if (0 < compiledString.length) {
+                                compiledString += '+';
+                            }
+                            compiledString += JSON.stringify(String(paths[indexFirstLevel].substr(index)));
                         }
-                        compiledString += '(' + ParsePath(match[1]) + ')';
-                        index = match['index'] + match[0].length;
+                        returnValue += '(' + compiledString + ')';
+                        break paths;
                     }
-                    if (paths[indexFirstLevel].length > index) {
-                        if (0 < compiledString.length) {
-                            compiledString += '+';
-                        }
-                        compiledString += JSON.stringify(String(paths[indexFirstLevel].substr(index)));
-                    }
-                    returnValue += '(' + compiledString + ')';
-                    break paths;
-                }
-                const path = paths[indexFirstLevel].trim().split('/');
-                let tmpValue = (((0 < path.length) && (0 < path[0].length)) ? ('!' != path[0][0] ? path[0] : path[0].substr(1)) : null);
-                if (tmpValue) {
-                    switch (tmpValue) {
-                        case 'FALSE': {
-                            if ('!' == path[0][0]) {
-                                returnValue += 'true';
+                    const path = paths[indexFirstLevel].trim().split('/');
+                    let tmpValue = (((0 < path.length) && (0 < path[0].length)) ? ('!' != path[0][0] ? path[0] : path[0].substr(1)) : null);
+                    if (tmpValue) {
+                        switch (tmpValue) {
+                            case 'FALSE': {
+                                if ('!' == path[0][0]) {
+                                    returnValue += 'true';
+                                }
+                                else {
+                                    returnValue += 'false';
+                                }
+                                break paths;
                             }
-                            else {
-                                returnValue += 'false';
+                            case 'TRUE': {
+                                if ('!' == path[0][0]) {
+                                    returnValue += 'false';
+                                }
+                                else {
+                                    returnValue += 'true';
+                                }
+                                break paths;
                             }
-                            break paths;
-                        }
-                        case 'TRUE': {
-                            if ('!' == path[0][0]) {
-                                returnValue += 'false';
+                            case 'REPEAT': {
+                                if (3 == path.length) {
+                                    openedBracket++;
+                                    returnValue += "('undefined'!==typeof r['REPEAT']&&";
+                                    returnValue += "'undefined'!==typeof r['REPEAT']['" + path[1] + "']&&";
+                                    let lastPath = "r['REPEAT']['" + path[1] + "']['" + path[2] + "']";
+                                    returnValue += "'undefined'!==typeof " + lastPath + "?";
+                                    returnValue += (('!' == path[0][0]) ? ExpressionResultNot(lastPath) : lastPath) + ":";
+                                }
+                                break;
                             }
-                            else {
-                                returnValue += 'true';
-                            }
-                            break paths;
-                        }
-                        case 'REPEAT': {
-                            if (3 == path.length) {
+                            case 'GLOBAL': {
+                                const countSecondLevel = path.length;
+                                let lastPath = 'd';
                                 openedBracket++;
-                                returnValue += "('undefined'!==typeof r['REPEAT']&&";
-                                returnValue += "'undefined'!==typeof r['REPEAT']['" + path[1] + "']&&";
-                                let lastPath = "r['REPEAT']['" + path[1] + "']['" + path[2] + "']";
-                                returnValue += "'undefined'!==typeof " + lastPath + "?";
-                                returnValue += (('!' == path[0][0]) ? ExpressionResultNot(lastPath) : lastPath) + ":";
-                            }
-                            break;
-                        }
-                        case 'GLOBAL': {
-                            const countSecondLevel = path.length;
-                            let lastPath = 'd';
-                            openedBracket++;
-                            returnValue += '(';
-                            for (let indexSecondLevel = 0; indexSecondLevel < countSecondLevel; ++indexSecondLevel) {
-                                if (0 < indexSecondLevel) {
-                                    returnValue += '&&';
+                                returnValue += '(';
+                                for (let indexSecondLevel = 0; indexSecondLevel < countSecondLevel; ++indexSecondLevel) {
+                                    if (0 < indexSecondLevel) {
+                                        returnValue += '&&';
+                                    }
+                                    lastPath = lastPath + "['" + path[indexSecondLevel] + "']";
+                                    returnValue += "'undefined'!==typeof " + lastPath;
                                 }
-                                lastPath = lastPath + "['" + path[indexSecondLevel] + "']";
-                                returnValue += "'undefined'!==typeof " + lastPath;
+                                returnValue += "?" + (('!' == path[0][0]) ? ExpressionResultNot(lastPath) : lastPath) + ":";
+                                break;
                             }
-                            returnValue += "?" + (('!' == path[0][0]) ? ExpressionResultNot(lastPath) : lastPath) + ":";
-                            break;
-                        }
-                        default: {
-                            const countSecondLevel = path.length;
-                            let lastPath = 'r';
-                            openedBracket++;
-                            returnValue += '(';
-                            for (let indexSecondLevel = 0; indexSecondLevel < countSecondLevel; ++indexSecondLevel) {
-                                if (0 < indexSecondLevel) {
-                                    returnValue += '&&';
+                            default: {
+                                const countSecondLevel = path.length;
+                                let lastPath = 'r';
+                                openedBracket++;
+                                returnValue += '(';
+                                for (let indexSecondLevel = 0; indexSecondLevel < countSecondLevel; ++indexSecondLevel) {
+                                    if (0 < indexSecondLevel) {
+                                        returnValue += '&&';
+                                    }
+                                    lastPath = lastPath + "['" + path[indexSecondLevel] + "']";
+                                    returnValue += "'undefined'!==typeof " + lastPath;
                                 }
-                                lastPath = lastPath + "['" + path[indexSecondLevel] + "']";
-                                returnValue += "'undefined'!==typeof " + lastPath;
-                            }
-                            returnValue += "?" + (('!' == path[0][0]) ? '(' + ExpressionResultNot(lastPath) + ')' : lastPath) + ":";
-                            lastPath = 'd';
-                            openedBracket++;
-                            returnValue += '(';
-                            for (let indexSecondLevel = 0; indexSecondLevel < countSecondLevel; ++indexSecondLevel) {
-                                if (0 < indexSecondLevel) {
-                                    returnValue += '&&';
+                                returnValue += "?" + (('!' == path[0][0]) ? '(' + ExpressionResultNot(lastPath) + ')' : lastPath) + ":";
+                                lastPath = 'd';
+                                openedBracket++;
+                                returnValue += '(';
+                                for (let indexSecondLevel = 0; indexSecondLevel < countSecondLevel; ++indexSecondLevel) {
+                                    if (0 < indexSecondLevel) {
+                                        returnValue += '&&';
+                                    }
+                                    lastPath = lastPath + "['" + path[indexSecondLevel] + "']";
+                                    returnValue += "'undefined'!==typeof " + lastPath;
                                 }
-                                lastPath = lastPath + "['" + path[indexSecondLevel] + "']";
-                                returnValue += "'undefined'!==typeof " + lastPath;
+                                returnValue += '?' + (('!' == path[0][0]) ? ExpressionResultNot(lastPath) : lastPath) + ":";
                             }
-                            returnValue += "?" + (('!' == path[0][0]) ? ExpressionResultNot(lastPath) : lastPath) + ":";
                         }
                     }
                 }
+                returnValue += 'false';
             }
-            returnValue += "false";
+            for (let indexFirstLevel = 0; indexFirstLevel < openedBracket; indexFirstLevel++) {
+                returnValue += ')';
+            }
         }
-        for (let indexFirstLevel = 0; indexFirstLevel < openedBracket; indexFirstLevel++) {
-            returnValue += ')';
+        else {
+            returnValue = 'false';
         }
         return returnValue;
     }
