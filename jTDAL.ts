@@ -354,9 +354,9 @@ namespace jTDAL {
 		return ( returnValue );
 	}
 
-	export function Compile( template: string ) {
-		let returnValue = ( 'let r={"REPEAT":{}},i=0,t=[]; return ""' +
-											Parse( template ) ).replace( /(?<!\\)""\+/, '' ).replace( /(?<!\\)"\+"/g, '' ).replace( /\+""$/, '' ) + ';';
+	export function Compile( template: string, trim : boolean = true ) {
+		let returnValue = ( 'let r={"REPEAT":{}},i=0,t=[]; return ' + ( trim ? '(' : '' ) + '""' +
+											Parse( template ) ).replace( /(?<!\\)""\+/, '' ).replace( /(?<!\\)"\+"/g, '' ).replace( /\+""$/, '' ) + ( trim ? ').trim()' : '' ) + ';';
 		return new Function( 'd', returnValue );
 	}
 }

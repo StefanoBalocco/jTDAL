@@ -331,9 +331,9 @@ var jTDAL;
         returnValue += '+' + JSON.stringify(String(template));
         return (returnValue);
     }
-    function Compile(template) {
-        let returnValue = ('let r={"REPEAT":{}},i=0,t=[]; return ""' +
-            Parse(template)).replace(/(?<!\\)""\+/, '').replace(/(?<!\\)"\+"/g, '').replace(/\+""$/, '') + ';';
+    function Compile(template, trim = true) {
+        let returnValue = ('let r={"REPEAT":{}},i=0,t=[]; return ' + (trim ? '(' : '') + '""' +
+            Parse(template)).replace(/(?<!\\)""\+/, '').replace(/(?<!\\)"\+"/g, '').replace(/\+""$/, '') + (trim ? ').trim()' : '') + ';';
         return new Function('d', returnValue);
     }
     jTDAL.Compile = Compile;
