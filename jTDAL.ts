@@ -61,31 +61,32 @@ namespace jTDAL {
 				const paths = pathExpression.split( '|' );
 				const countFirstLevel = paths.length;
 				for( let indexFirstLevel = 0; indexFirstLevel < countFirstLevel; ++indexFirstLevel ) {
-					if( regexp[ 'pathString' ].exec( paths[ indexFirstLevel ] ) ) {
+					const currentPath = paths[ indexFirstLevel ].trim();
+					if( regexp[ 'pathString' ].exec( currentPath ) ) {
 						let compiledString = '';
-						let index = paths[ indexFirstLevel ].indexOf( 'STRING:' ) + 7;
+						let index = currentPath.indexOf( 'STRING:' ) + 7;
 						let match = null;
-						while( null != ( match = regexp[ 'pathInString' ].exec( paths[ indexFirstLevel ] ) ) ) {
+						while( null != ( match = regexp[ 'pathInString' ].exec( currentPath ) ) ) {
 							if( 0 < compiledString.length ) {
 								compiledString += '+';
 							}
 							if( 0 < ( match.index - index ) ) {
-								compiledString += JSON.stringify( String( paths[ indexFirstLevel ].substr( index, match.index - index ) ) ) + '+';
+								compiledString += JSON.stringify( String( currentPath.substr( index, match.index - index ) ) ) + '+';
 							}
 							compiledString += '(' + ParsePath( match[ 1 ] ) + ')';
 							index = match[ 'index' ] + match[ 0 ].length;
 						}
-						if( paths[ indexFirstLevel ].length > index ) {
+						if( currentPath.length > index ) {
 							if( 0 < compiledString.length ) {
 								compiledString += '+';
 							}
-							compiledString += JSON.stringify( String( paths[ indexFirstLevel ].substr( index ) ) );
+							compiledString += JSON.stringify( String( currentPath.substr( index ) ) );
 						}
 						returnValue += '(' + compiledString + ')';
 						break paths;
 					}
-					const not = ( '!' === paths[ indexFirstLevel ].trim()[ 0 ] );
-					const path = ( not ? paths[ indexFirstLevel ].trim().substring( 1 ) : paths[ indexFirstLevel ].trim() ).split( '/' );
+					const not = ( '!' === currentPath[ 0 ] );
+					const path = ( not ? currentPath.substring( 1 ) : currentPath ).split( '/' );
 					if( ( 0 < path.length ) && ( 0 < path[ 0 ].length ) ) {
 						switch( path[ 0 ] ) {
 							case 'FALSE': {
