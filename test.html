@@ -13,6 +13,32 @@
 	</div>
 	<div class="row">
 		<div class="col-sm">
+			<h1>Condition test</h1>
+			<code>Data:
+				{
+					'url': 'https://picsum.photos/id/1025/480/320'
+				}
+			</code>
+			<div class="row" id="results-tdal-condition">
+			</div>
+		</div>
+		<div class="col-sm">
+			<h1>Condition in repeat test</h1>
+			<code>Data:
+			{
+				items:
+				[
+					{ 'URL': 'https://picsum.photos/id/1025/480/320' },
+					{ 'url': 'https://picsum.photos/id/1025/480/320' },
+					{ 'Url': 'https://picsum.photos/id/1025/480/320' },
+					{ 'url': 'https://picsum.photos/id/1026/480/320' }
+				]
+			}
+			</code>
+			<div class="row" id="results-tdal-condition-in-repeat">
+			</div>
+		</div>
+		<div class="col-sm">
 			<h1>Attributes test</h1>
 			<code>Data:
 			{
@@ -43,6 +69,64 @@
 		</div>
 	</div>
 </div>
+<script id="template-tdal-condition" type="text/html">
+	<div class="card">
+		<h4 class="section">Show if URL is missing</h4>
+		<div class="section">
+			<code>&lt;div data-tdal-condition="!url" data-tdal-content="STRING:URL is missing: {url}"&gt;URL is missing&lt;/div&gt;</code>
+		</div>
+		<div class="section">
+			<div data-tdal-condition="!url" data-tdal-content="STRING:URL is missing: {url}">URL is missing</div>
+		</div>
+	</div>
+	<div class="card">
+		<h4 class="section">Show if URL exists</h4>
+		<div class="section">
+			<code>&lt;div data-tdal-condition="url" data-tdal-content="STRING:URL exists: {url}"&gt;URL exists&lt;/div&gt;</code>
+		</div>
+		<div class="section">
+			<div data-tdal-condition="url" data-tdal-content="STRING:URL exists: {url}">URL exists</div>
+		</div>
+	</div>
+	<div class="card">
+		<h4 class="section">Show if URL is missing</h4>
+		<div class="section">
+			<code>&lt;div data-tdal-condition="!URL" data-tdal-content="STRING:URL is missing: {URL}"&gt;URL is missing&lt;/div&gt;</code>
+		</div>
+		<div class="section">
+			<div data-tdal-condition="!URL" data-tdal-content="STRING:URL is missing: {URL}">URL is missing</div>
+		</div>
+	</div>
+	<div class="card">
+		<h4 class="section">Show if URL exists</h4>
+		<div class="section">
+			<code>&lt;div data-tdal-condition="URL" data-tdal-content="STRING:URL exists: {URL}"&gt;URL exists&lt;/div&gt;</code>
+		</div>
+		<div class="section">
+			<div data-tdal-condition="URL" data-tdal-content="STRING:URL exists: {URL}">URL exists</div>
+		</div>
+	</div>
+</script>
+<script id="template-tdal-condition-in-repeat" type="text/html">
+	<div class="card" data-tdal-repeat="item items">
+		<h4 class="section">Show if URL is missing</h4>
+		<div class="section">
+			<code>&lt;div data-tdal-condition="!item/url" data-tdal-content="STRING:URL is missing: {item/url}"&gt;URL is missing&lt;/div&gt;</code>
+		</div>
+		<div class="section">
+			<div data-tdal-condition="!item/url" data-tdal-content="STRING:URL is missing: {item/url}">URL is missing</div>
+		</div>
+	</div>
+	<div class="card" data-tdal-repeat="item items">
+		<h4 class="section">Show if URL exists</h4>
+		<div class="section">
+			<code>&lt;div data-tdal-condition="item/url" data-tdal-content="STRING:URL exists: {item/url}"&gt;URL exists&lt;/div&gt;</code>
+		</div>
+		<div class="section">
+			<div data-tdal-condition="item/url" data-tdal-content="STRING:URL exists: {item/url}">URL exists</div>
+		</div>
+	</div>
+</script>
 <script id="template-tdal-attributes" type="text/html">
 	<div class="card">
 		<h4 class="section">Keeping default image</h4>
@@ -120,11 +204,22 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.slim.min.js" integrity="sha256-3edrmyuQ0w65f8gfBsqowzjJe2iM6n0nKciPUp8y+7E=" crossorigin="anonymous"></script>
 <script type="text/javascript" src="jTDAL.js"></script>
 <script type="text/javascript">
-$( function( )
-{
-	const template = [ jTDAL.Compile( $( '#template-tdal-attributes' ).html( ) ), jTDAL.Compile( $( '#template-tdal-repeat' ).html( ) ) ];
-	$( '#results-tdal-attributes' ).html( template[0]( { 'url': 'https://picsum.photos/id/1025/480/320' } ) );
-	$( '#results-tdal-repeat' ).html( template[1]( { 'items': [ 1025, 1062, 244, 40, 495, 582 ] } ) );
+$( function( ) {
+	const template = [ jTDAL.Compile( $( '#template-tdal-condition' ).html( ) ), jTDAL.Compile( $( '#template-tdal-condition-in-repeat' ).html( ) ), jTDAL.Compile( $( '#template-tdal-attributes' ).html( ) ), jTDAL.Compile( $( '#template-tdal-repeat' ).html( ) ) ];
+	let params = { 'url': 'https://picsum.photos/id/1025/480/320' };
+	$( '#results-tdal-attributes' ).html( template[2]( params ) );
+	$( '#results-tdal-condition' ).html( template[0]( params ) );
+	params = {
+		items: [
+			{ 'URL': 'https://picsum.photos/id/1025/480/320' },
+			{ 'url': 'https://picsum.photos/id/1025/480/320' },
+			{ 'Url': 'https://picsum.photos/id/1025/480/320' },
+			{ 'url': 'https://picsum.photos/id/1026/480/320' }
+		]
+	};
+	$( '#results-tdal-condition-in-repeat' ).html( template[1]( params ) );
+	params = { 'items': [ 1025, 1062, 244, 40, 495, 582 ] };
+	$( '#results-tdal-repeat' ).html( template[3]( params ) );
 }
 );
 </script>
