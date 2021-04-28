@@ -18,42 +18,12 @@ namespace jTDAL {
 		'attributes': new RegExp( '[\\s]*(?:(?:([\\w-]+?)[\\s]+(' + regexpPatternExpressionAllowedBoolean + ')[\\s]*)(?:;[\\s]*|$))', 'g' ),
 		'attributesTDAL': new RegExp( '\\s*(data-tdal-[\\w-]+)=(?:([\'"])(.*?)\\2|([^>\\s\'"]+))', 'gi' )
 	};
+	const HTML5VoidElements: string[] = [ 'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr' ];
 
-	function ExpressionResultToBoolean( result: string ): string {
-		let returnValue = '';
-		switch( result ) {
-			case 'true':
-			case 'false': {
-				returnValue = result;
-				break;
-			}
-			default: {
-				if( '!' === result[ 0 ] ) {
-					returnValue = '!' + result;
-				} else {
-					returnValue = '!(' + ExpressionResultNot( result ) + ')';
-				}
-			}
-		}
-		return ( returnValue );
-	}
-
-	function ExpressionResultNot( result: string ): string {
-		let returnValue = '"undefined"===typeof (t[i++]=' + result + ')||false===t[--i]||null===t[i]||(Array.isArray(t[i])&&1>t[i].length)||("object"===typeof t[i]&&1>Object.keys(t[i]).length)';
-		switch( result ) {
-			case 'true': {
-				returnValue = 'false';
-				break;
-			}
-			case 'false': {
-				returnValue = 'true';
-				break;
-			}
-		}
-		return ( returnValue );
-	}
-
-	function ParsePath( pathExpression: string ): string {
+	function ParsePath( pathExpression: string, getBoolean: boolean = false ): string {
+		/* Boolean conversion:
+		 * (false!==(t[i]=("function" === typeof #PATH#))&&null!==t[i]&&!(Array.isArray(t[i])&&1>t[i].length)&&!("object"===typeof t[i]&&1>Object.keys(t[i]).length))
+		 */
 		let returnValue: string = '';
 		if( pathExpression ) {
 			let openedBracket: number = 0;
@@ -86,6 +56,7 @@ namespace jTDAL {
 						break paths;
 					}
 					const not = ( '!' === currentPath[ 0 ] );
+					const boolPath = getBoolean || not;
 					const path = ( not ? currentPath.substring( 1 ) : currentPath ).split( '/' );
 					if( ( 0 < path.length ) && ( 0 < path[ 0 ].length ) ) {
 						switch( path[ 0 ] ) {
@@ -108,55 +79,50 @@ namespace jTDAL {
 							case 'REPEAT': {
 								if( 3 == path.length ) {
 									openedBracket++;
-									returnValue += ( not ? '(!' : '' ) + "('undefined'!==typeof r['REPEAT']&&";
-									returnValue += "'undefined'!==typeof r['REPEAT']['" + path[ 1 ] + "']&&";
-									let lastPath = "r['REPEAT']['" + path[ 1 ] + "']['" + path[ 2 ] + "']";
-									returnValue += "'undefined'!==typeof " + lastPath;
-									returnValue += ( not ? ')?true' : '?' + lastPath ) + ':';
+									returnValue += ( boolPath ? '(' + ( not ? '!' : '' ) : '' ) + '("undefined"!==typeof r["REPEAT"]&&';
+									returnValue += '"undefined"!==typeof r["REPEAT"]["' + path[ 1 ] + '"]&&';
+									let lastPath = 'r["REPEAT"]["' + path[ 1 ] + '"]["' + path[ 2 ] + '"]';
+									returnValue += '"undefined"!==typeof ' + lastPath;
+									returnValue += ( boolPath ? ')?false!==(t[i]=' + lastPath + ')&&null!==t[i]' : '?' + lastPath ) + ':';
 								}
 								break;
 							}
 							case 'GLOBAL': {
-								const countSecondLevel = path.length;
-								let lastPath: string = 'd';
-								openedBracket++;
-								returnValue += ( not ? '(!(' : '(' );
-								for( let indexSecondLevel = 0; indexSecondLevel < countSecondLevel; ++indexSecondLevel ) {
-									if( 0 < indexSecondLevel ) {
+								// at least two tokens: GLOBAL/variable
+								if( 1 < path.length ) {
+									const countSecondLevel = path.length;
+									// d must be a object
+									returnValue += ( boolPath ? ( not ? '!(' : '(' ) : '' ) + '"object"===typeof (t[i]=d)';
+									// Skip GLOBAL
+									for( let indexSecondLevel = 1; indexSecondLevel < countSecondLevel; ++indexSecondLevel ) {
 										returnValue += '&&';
+										let lastPath = 't[i]["' + path[ indexSecondLevel ] + '"]';
+										returnValue += '"undefined"!==typeof ';
+										returnValue += '(t[i]=("function"===typeof ' + lastPath + '?' + lastPath + '(r,d)):' + lastPath + ')';
 									}
-									lastPath = lastPath + "['" + path[ indexSecondLevel ] + "']";
-									returnValue += "'undefined'!==typeof " + lastPath;
+									returnValue += ( boolPath ? '?"object"===typeof t[i]?0<Object.keys(t[i]).length:(Array.isArray(t[i])?0<t[i].length:false!==t[i]&&null!==t[i]):false)?true' : '?t[i]' ) + ':';
 								}
-								returnValue += ( not ? ')?true' : '?' + lastPath ) + ':';
 								break;
 							}
 							default: {
 								const countSecondLevel = path.length;
-								let lastPath: string = 'r';
 								openedBracket++;
-								returnValue += ( not ? '(!((' : '(' );
+								returnValue += '(' + ( boolPath ? ( not ? '!' : '' ) + '(' : '' ) + '"object"===typeof (t[i]=r)';
 								for( let indexSecondLevel = 0; indexSecondLevel < countSecondLevel; ++indexSecondLevel ) {
-									if( 0 < indexSecondLevel ) {
-										returnValue += '&&';
-									}
-									lastPath = lastPath + "['" + path[ indexSecondLevel ] + "']";
-									returnValue += "'undefined'!==typeof " + lastPath;
+									returnValue += '&&';
+									let lastPath = 't[i]["' + path[ indexSecondLevel ] + '"]';
+									returnValue += '"undefined"!==typeof ';
+									returnValue += '(t[i]=("function"===typeof ' + lastPath + '?' + lastPath + '(d,r):' + lastPath + '))';
 								}
-								returnValue += ( not ? ')||' : '?' + lastPath + ':' );
-								lastPath = 'd';
-								if( !not ) {
-									openedBracket++;
-								}
-								returnValue += '(';
+								returnValue += ( boolPath ? '?"object"===typeof t[i]?0<Object.keys(t[i]).length:(Array.isArray(t[i])?0<t[i].length:false!==t[i]&&null!==t[i]):false)' + ( not ? '&&' : '||' ) : '?t[i]:' );
+								returnValue += ( boolPath ? ( not ? '!' : '' ) + '(' : '' ) + '"object"===typeof (t[i]=d)';
 								for( let indexSecondLevel = 0; indexSecondLevel < countSecondLevel; ++indexSecondLevel ) {
-									if( 0 < indexSecondLevel ) {
-										returnValue += '&&';
-									}
-									lastPath = lastPath + "['" + path[ indexSecondLevel ] + "']";
-									returnValue += "'undefined'!==typeof " + lastPath;
+									returnValue += '&&';
+									let lastPath = 't[i]["' + path[ indexSecondLevel ] + '"]';
+									returnValue += '"undefined"!==typeof ';
+									returnValue += '(t[i]=("function"===typeof ' + lastPath + '?' + lastPath + '(d,r):' + lastPath + '))';
 								}
-								returnValue += ( not ? '))?true' : '?' + lastPath ) + ':';
+								returnValue += ( boolPath ? '?"object"===typeof t[i]?0<Object.keys(t[i]).length:(Array.isArray(t[i])?0<t[i].length:false!==t[i]&&null!==t[i]):false)?true' : '?t[i]' ) + ':';
 							}
 						}
 					}
@@ -186,9 +152,19 @@ namespace jTDAL {
 			while( null !== ( tmpMatch = regexp[ 'tagAttributes' ].exec( tmpTDALTags[ 0 ] ) ) ) {
 				attributes[ tmpMatch[ 1 ] ] = tmpMatch;
 			}
-			let selfClosed = !!tmpTDALTags[ 6 ];
-			let closingPosition: number[] = [];
+			// 0: js before tag open
+			// 1: tagOpen
+			// 2: js attributes (before closing tagOpen)
+			// 3: js after tag open
+			// 4: tagContent
+			// 5: js before tag close
+			// 6: tagClose
+			// 7: js after tag close
+			let current = [ '', tmpTDALTags[ 0 ], '', '', '', '', '', '' ];
+			// selfclosed if /> or if is a area, base, br, col, embed, hr, img, input, link, meta, param, source, track, wbr
+			let selfClosed = !!tmpTDALTags[ 6 ] || HTML5VoidElements.includes( tmpTDALTags[ 1 ].toLowerCase() );
 			if( !selfClosed ) {
+				let closingPosition: number[] = [];
 				const endTag = new RegExp( '<(\\/)?' + tmpTDALTags[ 1 ] + '[^<>]*(?<!\\/)>', 'gi' );
 				let tags = 1;
 				while( ( 'undefined' === typeof closingPosition[ 0 ] ) && ( null !== ( tmpMatch = endTag.exec( template ) ) ) ) {
@@ -203,32 +179,19 @@ namespace jTDAL {
 				}
 				if( 'undefined' === typeof closingPosition[ 0 ] ) {
 					selfClosed = true;
-				}
-			}
-			// 0: js before tag open
-			// 1: tagOpen
-			// 2: js attributes (before closing tagOpen)
-			// 3: js after tag open
-			// 4: tagContent
-			// 5: js before tag close
-			// 6: tagClose
-			// 7: js after tag close
-			let current = [ '', tmpTDALTags[ 0 ], '', '', '', '', '', '' ];
-			if( !selfClosed ) {
-				current[ 4 ] += Parse( template.substr( 0, closingPosition[ 0 ] ) );
-				current[ 6 ] += template.substr( closingPosition[ 0 ], closingPosition[ 1 ] );
-			}
-			tdal:
-			{
-				if( !selfClosed ) {
+				} else {
+					current[ 4 ] += Parse( template.substr( 0, closingPosition[ 0 ] ) );
+					current[ 6 ] += template.substr( closingPosition[ 0 ], closingPosition[ 1 ] );
 					template = template.substr( closingPosition[ 0 ] + closingPosition[ 1 ] );
 				}
+			}
+			tdal:      {
 				if( attributes[ 'data-tdal-condition' ] && ( regexp[ 'condition' ].exec( attributes[ 'data-tdal-condition' ][ 3 ] ) ) ) {
-					let tmpValue = ExpressionResultToBoolean( ParsePath( attributes[ 'data-tdal-condition' ][ 3 ] ) );
-					if( 'false' == tmpValue ) {
+					let tmpValue = ParsePath( attributes[ 'data-tdal-condition' ][ 3 ], true );
+					if( 'false' === tmpValue ) {
 						// the tag (and it's content) should be removed
 						break tdal;
-					} else if( 'true' != tmpValue ) {
+					} else if( 'true' !== tmpValue ) {
 						current[ 0 ] += '+(true===' + tmpValue + '?""';
 						current[ 7 ] = ':"")' + current[ 7 ];
 					}
@@ -242,8 +205,8 @@ namespace jTDAL {
 					} else {
 						current[ 0 ] += '+(';
 						// current i = object
-						current[ 0 ] += 'false!==(t[i]=' + tmpValue + ')&&';
-						current[ 0 ] += '(!Array.isArray(t[i])||(t[i]=Object.assign({},t[i])))&&';
+						current[ 0 ] += 'false!==(t[i++]=' + tmpValue + ')&&';
+						current[ 0 ] += '(!Array.isArray(t[--i])||(t[i]=Object.assign({},t[i])))&&';
 						// current i = index for object loop ( i+=1 )
 						current[ 0 ] += '("object"===typeof t[i]&&0<Object.keys(t[i++]).length)&&(t[i++]=1)';
 						current[ 0 ] += '?';
@@ -274,7 +237,7 @@ namespace jTDAL {
 							encoding[ 0 ] = '(new String(';
 							encoding[ 1 ] = ')).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;")';
 						}
-						current[ 3 ] += '+(false !== (t[i]=' + tmpValue + ')&&("string"===typeof t[i]||("number"===typeof t[i]&&!isNaN(t[i])))?' + encoding[ 0 ] +
+						current[ 3 ] += '+(false!==(t[i++]=' + tmpValue + ')&&("string"===typeof t[--i]||("number"===typeof t[i]&&!isNaN(t[i])))?' + encoding[ 0 ] +
 														't[i]' + encoding[ 1 ] + ':(true!==t[i]?"":""';
 						current[ 5 ] += '))';
 					}
@@ -290,7 +253,7 @@ namespace jTDAL {
 							encoding[ 0 ] = '(new String(';
 							encoding[ 1 ] = ')).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;")';
 						}
-						current[ 0 ] += '+(false!==(t[i]=' + tmpValue + ')&&("string"===typeof t[i]||("number"===typeof t[i]&&!isNaN(t[i])))?' + encoding[ 0 ] +
+						current[ 0 ] += '+(false!==(t[i++]=' + tmpValue + ')&&("string"===typeof t[--i]||("number"===typeof t[i]&&!isNaN(t[i])))?' + encoding[ 0 ] +
 														't[i]' + encoding[ 1 ] + ':(true!==t[i]?"":""';
 						current[ 7 ] = '))' + current[ 7 ];
 					}
@@ -298,12 +261,12 @@ namespace jTDAL {
 				if( attributes[ 'data-tdal-attributes' ] && ( tmpTDALrules = regexp[ 'attributes' ].exec( attributes[ 'data-tdal-attributes' ][ 3 ] ) ) ) {
 					while( null !== tmpTDALrules ) {
 						let tmpValue = ParsePath( tmpTDALrules[ 2 ] );
-						if( "false" === tmpValue ) {
+						if( 'false' === tmpValue ) {
 							if( 'undefined' !== ( typeof attributes[ tmpTDALrules[ 1 ] ] ) ) {
 								current[ 1 ] = current[ 1 ].replace( new RegExp( '\\s*' + tmpTDALrules[ 1 ] + '(?:=([\'"]).*?\\1)?' ), '' );
 							}
-						} else if( "true" !== tmpValue ) {
-							current[ 2 ] += '+(false!==(t[i]=' + tmpValue + ')&&("string"===typeof t[i]||("number"===typeof t[i]&&!isNaN(t[i])))?" ' + tmpTDALrules[ 1 ] +
+						} else if( 'true' !== tmpValue ) {
+							current[ 2 ] += '+(false!==(t[i++]=' + tmpValue + ')&&("string"===typeof t[--i]||("number"===typeof t[i]&&!isNaN(t[i])))?" ' + tmpTDALrules[ 1 ] +
 															'=\\""+t[i]+"\\"":(true!==t[i]?"":"';
 							if( 'undefined' !== ( typeof attributes[ tmpTDALrules[ 1 ] ] ) ) {
 								current[ 1 ] = current[ 1 ].replace( new RegExp( '\\s*' + tmpTDALrules[ 1 ] + '(?:=([\'"]).*?\\1)?' ), '' );
@@ -320,7 +283,7 @@ namespace jTDAL {
 					}
 				}
 				if( attributes[ 'data-tdal-omittag' ] && ( regexp[ 'condition' ].exec( attributes[ 'data-tdal-omittag' ][ 3 ] ) ) ) {
-					let tmpValue = ExpressionResultToBoolean( ParsePath( attributes[ 'data-tdal-omittag' ][ 3 ] ) );
+					let tmpValue = ParsePath( attributes[ 'data-tdal-omittag' ][ 3 ], true );
 					if( 'true' == tmpValue ) {
 						current[ 1 ] = '';
 						current[ 6 ] = '';
@@ -351,7 +314,7 @@ namespace jTDAL {
 	}
 
 	export function Compile( template: string, trim: boolean = true ) {
-		let returnValue = ( 'let r={"REPEAT":{}},i=0,t=[]; return ' + ( trim ? '(' : '' ) + '""' +
+		let returnValue = ( 'let r={"REPEAT":{}},i=0,t=[];return ' + ( trim ? '(' : '' ) + '""' +
 											Parse( template ) ).replace( /(?<!\\)""\+/, '' ).replace( /(?<!\\)"\+"/g, '' ).replace( /\+""$/, '' ) + ( trim ? ').trim()' : '' ) + ';';
 		return new Function( 'd', returnValue );
 	}
