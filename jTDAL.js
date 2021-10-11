@@ -299,10 +299,17 @@ var jTDAL;
         returnValue += '+' + JSON.stringify(String(template));
         return (returnValue);
     }
-    function Compile(template, trim = true) {
-        let returnValue = ('let r={"REPEAT":{}},i=0,t=[];return ' + (trim ? '(' : '') + '""' +
+    function Compile(template, trim = true, outputAsFunction = true) {
+        let code = ('let r={"REPEAT":{}},i=0,t=[];return ' + (trim ? '(' : '') + '""' +
             Parse(template)).replace(/(?<!\\)""\+/, '').replace(/(?<!\\)"\+"/g, '').replace(/\+""$/, '') + (trim ? ').trim()' : '') + ';';
-        return new Function('d', returnValue);
+        let returnValue;
+        if (outputAsFunction) {
+            returnValue = new Function('d', code);
+        }
+        else {
+            returnValue = 'function(d){' + code + '}';
+        }
+        return returnValue;
     }
     jTDAL.Compile = Compile;
 })(jTDAL || (jTDAL = {}));

@@ -313,10 +313,16 @@ namespace jTDAL {
 		return ( returnValue );
 	}
 
-	export function Compile( template: string, trim: boolean = true ) {
-		let returnValue = ( 'let r={"REPEAT":{}},i=0,t=[];return ' + ( trim ? '(' : '' ) + '""' +
-											Parse( template ) ).replace( /(?<!\\)""\+/, '' ).replace( /(?<!\\)"\+"/g, '' ).replace( /\+""$/, '' ) + ( trim ? ').trim()' : '' ) + ';';
-		return new Function( 'd', returnValue );
+	export function Compile( template: string, trim: boolean = true, outputAsFunction: boolean = true ): ( Function | string ) {
+		let code: string = ( 'let r={"REPEAT":{}},i=0,t=[];return ' + ( trim ? '(' : '' ) + '""' +
+											 Parse( template ) ).replace( /(?<!\\)""\+/, '' ).replace( /(?<!\\)"\+"/g, '' ).replace( /\+""$/, '' ) + ( trim ? ').trim()' : '' ) + ';';
+		let returnValue: ( Function | string );
+		if( outputAsFunction ) {
+			returnValue = new Function( 'd', code );
+		} else {
+			returnValue = 'function(d){' + code + '}';
+		}
+		return returnValue;
 	}
 }
 // @ts-ignore
