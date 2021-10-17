@@ -299,20 +299,18 @@ var jTDAL;
         returnValue += '+' + JSON.stringify(String(template));
         return (returnValue);
     }
-    function Compile(template, trim = true, outputAsFunction = true) {
-        let code = ('let r={"REPEAT":{}},i=0,t=[];return ' + (trim ? '(' : '') + '""' +
-            Parse(template)).replace(/(?<!\\)""\+/, '').replace(/(?<!\\)"\+"/g, '').replace(/\+""$/, '') + (trim ? ').trim()' : '') + ';';
-        let returnValue;
-        if (outputAsFunction) {
-            returnValue = new Function('d', code);
-        }
-        else {
-            returnValue = 'function(d){' + code + '}';
-        }
+    function Compile(template, trim = true) {
+        let returnValue = new Function('d', ('let r={"REPEAT":{}},i=0,t=[];return ' + (trim ? '(' : '') + '""' + Parse(template)).replace(/(?<!\\)""\+/, '').replace(/(?<!\\)"\+"/g, '').replace(/\+""$/, '') + (trim ? ').trim()' : ''));
         return returnValue;
     }
     jTDAL.Compile = Compile;
+    function CompileAsString(template, trim = true) {
+        let returnValue = 'function(d){' + ('let r={"REPEAT":{}},i=0,t=[];return ' + (trim ? '(' : '') + '""' + Parse(template)).replace(/(?<!\\)""\+/, '').replace(/(?<!\\)"\+"/g, '').replace(/\+""$/, '') + (trim ? ').trim()' : '') + '}';
+        return returnValue;
+    }
+    jTDAL.CompileAsString = CompileAsString;
 })(jTDAL || (jTDAL = {}));
 if ('undefined' !== typeof exports) {
     exports.Compile = jTDAL.Compile;
+    exports.CompileAsString = jTDAL.CompileAsString;
 }

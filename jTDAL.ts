@@ -313,15 +313,16 @@ namespace jTDAL {
 		return ( returnValue );
 	}
 
-	export function Compile( template: string, trim: boolean = true, outputAsFunction: boolean = true ): ( Function | string ) {
-		let code: string = ( 'let r={"REPEAT":{}},i=0,t=[];return ' + ( trim ? '(' : '' ) + '""' +
-											 Parse( template ) ).replace( /(?<!\\)""\+/, '' ).replace( /(?<!\\)"\+"/g, '' ).replace( /\+""$/, '' ) + ( trim ? ').trim()' : '' ) + ';';
-		let returnValue: ( Function | string );
-		if( outputAsFunction ) {
-			returnValue = new Function( 'd', code );
-		} else {
-			returnValue = 'function(d){' + code + '}';
-		}
+	export function Compile( template: string, trim: boolean = true ): Function {
+		let returnValue: Function = new Function(
+			'd',
+			( 'let r={"REPEAT":{}},i=0,t=[];return ' + ( trim ? '(' : '' ) + '""' + Parse( template ) ).replace( /(?<!\\)""\+/, '' ).replace( /(?<!\\)"\+"/g, '' ).replace( /\+""$/, '' ) + ( trim ? ').trim()' : '' )
+		);
+		return returnValue;
+	}
+
+	export function CompileAsString( template: string, trim: boolean = true ): string {
+		let returnValue: string = 'function(d){' + ( 'let r={"REPEAT":{}},i=0,t=[];return ' + ( trim ? '(' : '' ) + '""' + Parse( template ) ).replace( /(?<!\\)""\+/, '' ).replace( /(?<!\\)"\+"/g, '' ).replace( /\+""$/, '' ) + ( trim ? ').trim()' : '' ) + '}';
 		return returnValue;
 	}
 }
@@ -329,4 +330,6 @@ namespace jTDAL {
 if( 'undefined' !== typeof exports ) {
 	// @ts-ignore
 	exports.Compile = jTDAL.Compile;
+	// @ts-ignore
+	exports.CompileAsString = jTDAL.CompileAsString;
 }
