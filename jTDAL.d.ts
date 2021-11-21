@@ -1,4 +1,4 @@
 declare namespace jTDAL {
-    function Compile(template: string, trim?: boolean): Function;
-    function CompileAsString(template: string, trim?: boolean): string;
+    function CompileToFunction(template: string, trim?: boolean, strip?: boolean): Function;
+    function CompileToString(template: string, trim?: boolean, strip?: boolean): string;
 }

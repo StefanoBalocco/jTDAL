@@ -313,23 +313,22 @@ namespace jTDAL {
 		return ( returnValue );
 	}
 
-	export function Compile( template: string, trim: boolean = true ): Function {
-		let returnValue: Function = new Function(
-			'd',
-			( 'let r={"REPEAT":{}},i=0,t=[];return ' + ( trim ? '(' : '' ) + '""' + Parse( template ) ).replace( /(?<!\\)""\+/, '' ).replace( /(?<!\\)"\+"/g, '' ).replace( /\+""$/, '' ) + ( trim ? ').trim()' : '' )
-		);
-		return returnValue;
+	function Compile( template: string, trim: boolean = true, strip: boolean = true ): string {
+		return ( ( 'let r={"REPEAT":{}},i=0,t=[];return ' + ( trim ? '(' : '' ) + '""' + Parse( strip ? template.replace( /\<!--.*?--\>/sg, '' ) : template ) ).replace( /(?<!\\)""\+/, '' ).replace( /(?<!\\)"\+"/g, '' ).replace( /\+""$/, '' ) + ( trim ? ').trim()' : '' ) );
 	}
 
-	export function CompileAsString( template: string, trim: boolean = true ): string {
-		let returnValue: string = 'function(d){' + ( 'let r={"REPEAT":{}},i=0,t=[];return ' + ( trim ? '(' : '' ) + '""' + Parse( template ) ).replace( /(?<!\\)""\+/, '' ).replace( /(?<!\\)"\+"/g, '' ).replace( /\+""$/, '' ) + ( trim ? ').trim()' : '' ) + '}';
-		return returnValue;
+	export function CompileToFunction( template: string, trim: boolean = true, strip: boolean = true ): Function {
+		return new Function( 'd', Compile( template, trim, strip ) );
+	}
+
+	export function CompileToString( template: string, trim: boolean = true, strip: boolean = true ): string {
+		return 'function(d){' + Compile( template, trim, strip ) + '}';
 	}
 }
 // @ts-ignore
 if( 'undefined' !== typeof exports ) {
 	// @ts-ignore
-	exports.Compile = jTDAL.Compile;
+	exports.CompileToFunction = jTDAL.CompileToFunction;
 	// @ts-ignore
-	exports.CompileAsString = jTDAL.CompileAsString;
+	exports.CompileToString = jTDAL.CompileToString;
 }

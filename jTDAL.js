@@ -299,18 +299,19 @@ var jTDAL;
         returnValue += '+' + JSON.stringify(String(template));
         return (returnValue);
     }
-    function Compile(template, trim = true) {
-        let returnValue = new Function('d', ('let r={"REPEAT":{}},i=0,t=[];return ' + (trim ? '(' : '') + '""' + Parse(template)).replace(/(?<!\\)""\+/, '').replace(/(?<!\\)"\+"/g, '').replace(/\+""$/, '') + (trim ? ').trim()' : ''));
-        return returnValue;
+    function Compile(template, trim = true, strip = true) {
+        return (('let r={"REPEAT":{}},i=0,t=[];return ' + (trim ? '(' : '') + '""' + Parse(strip ? template.replace(/\<!--.*?--\>/sg, '') : template)).replace(/(?<!\\)""\+/, '').replace(/(?<!\\)"\+"/g, '').replace(/\+""$/, '') + (trim ? ').trim()' : ''));
     }
-    jTDAL.Compile = Compile;
-    function CompileAsString(template, trim = true) {
-        let returnValue = 'function(d){' + ('let r={"REPEAT":{}},i=0,t=[];return ' + (trim ? '(' : '') + '""' + Parse(template)).replace(/(?<!\\)""\+/, '').replace(/(?<!\\)"\+"/g, '').replace(/\+""$/, '') + (trim ? ').trim()' : '') + '}';
-        return returnValue;
+    function CompileToFunction(template, trim = true, strip = true) {
+        return new Function('d', Compile(template, trim, strip));
     }
-    jTDAL.CompileAsString = CompileAsString;
+    jTDAL.CompileToFunction = CompileToFunction;
+    function CompileToString(template, trim = true, strip = true) {
+        return 'function(d){' + Compile(template, trim, strip) + '}';
+    }
+    jTDAL.CompileToString = CompileToString;
 })(jTDAL || (jTDAL = {}));
 if ('undefined' !== typeof exports) {
-    exports.Compile = jTDAL.Compile;
-    exports.CompileAsString = jTDAL.CompileAsString;
+    exports.CompileToFunction = jTDAL.CompileToFunction;
+    exports.CompileToString = jTDAL.CompileToString;
 }
