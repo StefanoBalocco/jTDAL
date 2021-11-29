@@ -205,7 +205,7 @@
 <script type="text/javascript" src="jTDAL.js"></script>
 <script type="text/javascript">
 $( function( ) {
-	const template = [ jTDAL.Compile( $( '#template-tdal-condition' ).html( ) ), jTDAL.Compile( $( '#template-tdal-condition-in-repeat' ).html( ) ), jTDAL.Compile( $( '#template-tdal-attributes' ).html( ) ), jTDAL.Compile( $( '#template-tdal-repeat' ).html( ) ) ];
+	const template = [ jTDAL.CompileToFunction( $( '#template-tdal-condition' ).html( ) ), jTDAL.CompileToFunction( $( '#template-tdal-condition-in-repeat' ).html( ) ), jTDAL.CompileToFunction( $( '#template-tdal-attributes' ).html( ) ), jTDAL.CompileToFunction( $( '#template-tdal-repeat' ).html( ) ) ];
 	let params = { 'url': 'https://picsum.photos/id/1025/480/320' };
 	$( '#results-tdal-attributes' ).html( template[2]( params ) );
 	$( '#results-tdal-condition' ).html( template[0]( params ) );
