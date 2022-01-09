@@ -106,6 +106,24 @@
 			<div data-tdal-condition="URL" data-tdal-content="STRING:URL exists: {URL}">URL exists</div>
 		</div>
 	</div>
+	<div class="card">
+		<h4 class="section">Show if URL is missing or exists (using conditional STRING)</h4>
+		<div class="section">
+			<code>&lt;div data-tdal-content="STRING:{?url}URL exists: {url}{?url}{?!url}URL is missing: {url}{?!url}"&gt;URL is missing&lt;/div&gt;</code>
+		</div>
+		<div class="section">
+			<div data-tdal-content="STRING:{?url}URL exists: {url}{?url}{?!url}URL is missing: {url}{?!url}">URL is missing</div>
+		</div>
+	</div>
+	<div class="card">
+		<h4 class="section">Show if URL is missing or exists (using conditional STRING)</h4>
+		<div class="section">
+			<code>&lt;div data-tdal-content="STRING:{?URL}URL exists: {URL}{?URL}{?!URL}URL is missing: {URL}{?!URL}"&gt;URL is missing&lt;/div&gt;</code>
+		</div>
+		<div class="section">
+			<div data-tdal-content="STRING:{?URL}URL exists: {URL}{?URL}{?!URL}URL is missing: {URL}{?!URL}">URL is missing</div>
+		</div>
+	</div>
 </script>
 <script id="template-tdal-condition-in-repeat" type="text/html">
 	<div class="card" data-tdal-repeat="item items">
