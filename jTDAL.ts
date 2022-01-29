@@ -3,7 +3,7 @@ namespace jTDAL {
 	const regexpPatternPath: string = '(?:[\\w-\\/]*[\\w](?:[\\s]*\\|[\\s]*[\\w-\\/]*[\\w])*)';
 	const regexpPatternPathAllowedBoolean: string = '(?:(?:!)?[\\w-\\/]*[\\w](?:[\\s]*\\|[\\s]*[\\w-\\/]*[\\w])*)';
 	//const regexpPatternExpression: string = '(STRING:[^;]+|' + regexpPatternPathAllowedBoolean + ')';
-	const regexpPatternExpressionAllowedBoolean: string = '(STRING:[^;]+|' + regexpPatternPathAllowedBoolean + ')';
+	const regexpPatternExpressionAllowedBoolean: string = '(STRING:[^#]+|' + regexpPatternPathAllowedBoolean + ')';
 	const keywords: string[] = [ 'condition', 'repeat', 'content', 'replace', 'attributes', 'omittag' ];
 	const regexp: { [ key: string ]: RegExp } = {
 		'tagWithTDAL': new RegExp( '<((?:\\w+:)?\\w+)(\\s+[^<>]+?)??\\s+data-tdal-(?:' + keywords.join( '|' ) +
@@ -16,7 +16,7 @@ namespace jTDAL {
 		'condition': new RegExp( '^[\\s]*(' + regexpPatternExpressionAllowedBoolean + ')[\\s]*$' ),
 		'repeat': new RegExp( '^[\\s]*([\\w-]+?)[\\s]+(' + regexpPatternPath + ')[\\s]*$' ),
 		'content': new RegExp( '^[\\s]*(?:(text|structure)[\\s]+)?(' + regexpPatternExpressionAllowedBoolean + ')[\\s]*$' ),
-		'attributes': new RegExp( '[\\s]*(?:(?:([\\w-]+?)[\\s]+(' + regexpPatternExpressionAllowedBoolean + ')[\\s]*)(?:;[\\s]*|$))', 'g' ),
+		'attributes': new RegExp( '[\\s]*(?:(?:([\\w-]+?)[\\s]+(' + regexpPatternExpressionAllowedBoolean + ')[\\s]*)(?:#[\\s]*|$))', 'g' ),
 		'attributesTDAL': new RegExp( '\\s*(data-tdal-[\\w-]+)=(?:([\'"])(.*?)\\2|([^>\\s\'"]+))', 'gi' )
 	};
 	// {\?((?:[\w-\/]*[\w](?:[\s]*\|[\s]*[\w-\/]*[\w])*))}(.*?){\?(?:[\w-\/]*[\w](?:[\s]*\|[\s]*[\w-\/]*[\w])*)}

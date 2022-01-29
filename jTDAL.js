@@ -3,7 +3,7 @@ var jTDAL;
 (function (jTDAL) {
     const regexpPatternPath = '(?:[\\w-\\/]*[\\w](?:[\\s]*\\|[\\s]*[\\w-\\/]*[\\w])*)';
     const regexpPatternPathAllowedBoolean = '(?:(?:!)?[\\w-\\/]*[\\w](?:[\\s]*\\|[\\s]*[\\w-\\/]*[\\w])*)';
-    const regexpPatternExpressionAllowedBoolean = '(STRING:[^;]+|' + regexpPatternPathAllowedBoolean + ')';
+    const regexpPatternExpressionAllowedBoolean = '(STRING:[^#]+|' + regexpPatternPathAllowedBoolean + ')';
     const keywords = ['condition', 'repeat', 'content', 'replace', 'attributes', 'omittag'];
     const regexp = {
         'tagWithTDAL': new RegExp('<((?:\\w+:)?\\w+)(\\s+[^<>]+?)??\\s+data-tdal-(?:' + keywords.join('|') +
@@ -16,7 +16,7 @@ var jTDAL;
         'condition': new RegExp('^[\\s]*(' + regexpPatternExpressionAllowedBoolean + ')[\\s]*$'),
         'repeat': new RegExp('^[\\s]*([\\w-]+?)[\\s]+(' + regexpPatternPath + ')[\\s]*$'),
         'content': new RegExp('^[\\s]*(?:(text|structure)[\\s]+)?(' + regexpPatternExpressionAllowedBoolean + ')[\\s]*$'),
-        'attributes': new RegExp('[\\s]*(?:(?:([\\w-]+?)[\\s]+(' + regexpPatternExpressionAllowedBoolean + ')[\\s]*)(?:;[\\s]*|$))', 'g'),
+        'attributes': new RegExp('[\\s]*(?:(?:([\\w-]+?)[\\s]+(' + regexpPatternExpressionAllowedBoolean + ')[\\s]*)(?:#[\\s]*|$))', 'g'),
         'attributesTDAL': new RegExp('\\s*(data-tdal-[\\w-]+)=(?:([\'"])(.*?)\\2|([^>\\s\'"]+))', 'gi')
     };
     const HTML5VoidElements = ['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr'];
