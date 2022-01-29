@@ -7,7 +7,7 @@
     "type": "git",
     "url": "https://github.com/StefanoBalocco/jTDAL.git"
   },
-  "version": "2.1.4",
+  "version": "2.1.5",
   "keywords": [
     "template engine",
     "tal"
