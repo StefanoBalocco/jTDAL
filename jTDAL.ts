@@ -102,37 +102,37 @@ namespace jTDAL {
 									if( 1 < path.length ) {
 										const countSecondLevel = path.length;
 										// d must be a object
-										returnValue += ( boolPath ? ( not ? '!(' : '(' ) : '' ) + '"object"===typeof (t[i]=d)';
+										returnValue += ( boolPath ? ( not ? '!(' : '(' ) : '' ) + '"object"===typeof(t[i]=d)&&null!==t[i]';
 										// Skip GLOBAL
 										for( let indexSecondLevel = 1; indexSecondLevel < countSecondLevel; ++indexSecondLevel ) {
 											returnValue += '&&';
 											let lastPath = 't[i]["' + path[ indexSecondLevel ] + '"]';
-											returnValue += '"undefined"!==typeof ';
+											returnValue += '"undefined"!==typeof';
 											returnValue += '(t[i]=("function"===typeof ' + lastPath + '?' + lastPath + '(r,d)):' + lastPath + ')';
 										}
-										returnValue += ( boolPath ? '?"object"===typeof t[i]?0<Object.keys(t[i]).length:(Array.isArray(t[i])?0<t[i].length:false!==t[i]&&null!==t[i]):false)?true' : '?t[i]' ) + ':';
+										returnValue += ( boolPath ? '?"object"===typeof t[i]?null!==t[i]&&0<Object.keys(t[i]).length:(Array.isArray(t[i])?0<t[i].length:false!==t[i]):false)?true' : '?t[i]' ) + ':';
 									}
 									break;
 								}
 								default: {
 									const countSecondLevel = path.length;
 									openedBracket++;
-									returnValue += '(' + ( boolPath ? ( not ? '!' : '' ) + '(' : '' ) + '"object"===typeof (t[i]=r)';
+									returnValue += '(' + ( boolPath ? ( not ? '!' : '' ) + '(' : '' ) + '"object"===typeof(t[i]=r)&&null!==t[i]';
 									for( let indexSecondLevel = 0; indexSecondLevel < countSecondLevel; ++indexSecondLevel ) {
 										returnValue += '&&';
 										let lastPath = 't[i]["' + path[ indexSecondLevel ] + '"]';
-										returnValue += '"undefined"!==typeof ';
+										returnValue += '"undefined"!==typeof';
 										returnValue += '(t[i]=("function"===typeof ' + lastPath + '?' + lastPath + '(d,r):' + lastPath + '))';
 									}
-									returnValue += ( boolPath ? '?"object"===typeof t[i]?0<Object.keys(t[i]).length:(Array.isArray(t[i])?0<t[i].length:false!==t[i]&&null!==t[i]):false)' + ( not ? '&&' : '||' ) : '?t[i]:' );
-									returnValue += ( boolPath ? ( not ? '!' : '' ) + '(' : '' ) + '"object"===typeof (t[i]=d)';
+									returnValue += ( boolPath ? '?"object"===typeof t[i]?null!==t[i]&&0<Object.keys(t[i]).length:(Array.isArray(t[i])?0<t[i].length:false!==t[i]):false)' + ( not ? '&&' : '||' ) : '?t[i]:' );
+									returnValue += ( boolPath ? ( not ? '!' : '' ) + '(' : '' ) + '"object"===typeof(t[i]=d)&&null!==t[i]';
 									for( let indexSecondLevel = 0; indexSecondLevel < countSecondLevel; ++indexSecondLevel ) {
 										returnValue += '&&';
 										let lastPath = 't[i]["' + path[ indexSecondLevel ] + '"]';
-										returnValue += '"undefined"!==typeof ';
+										returnValue += '"undefined"!==typeof';
 										returnValue += '(t[i]=("function"===typeof ' + lastPath + '?' + lastPath + '(d,r):' + lastPath + '))';
 									}
-									returnValue += ( boolPath ? '?"object"===typeof t[i]?0<Object.keys(t[i]).length:(Array.isArray(t[i])?0<t[i].length:false!==t[i]&&null!==t[i]):false)?true' : '?t[i]' ) + ':';
+									returnValue += ( boolPath ? '?"object"===typeof t[i]?null!==t[i]&&0<Object.keys(t[i]).length:(Array.isArray(t[i])?0<t[i].length:false!==t[i]):false)?true' : '?t[i]' ) + ':';
 								}
 							}
 						}
@@ -219,7 +219,7 @@ namespace jTDAL {
 						current[ 0 ] += 'false!==(t[i++]=' + tmpValue + ')&&';
 						current[ 0 ] += '(!Array.isArray(t[--i])||(t[i]=Object.assign({},t[i])))&&';
 						// current i = index for object loop ( i+=1 )
-						current[ 0 ] += '("object"===typeof t[i]&&0<Object.keys(t[i++]).length)&&(t[i++]=1)';
+						current[ 0 ] += '("object"===typeof t[i]&&null!==t[i]&&0<Object.keys(t[i++]).length)&&(t[i++]=1)';
 						current[ 0 ] += '?';
 						current[ 0 ] += 'Object.keys(t[i-2]).reduce(function(o,e){';
 						current[ 0 ] += 'r["' + tmpTDALrules[ 1 ] + '"]=t[i-2][e];';
@@ -278,15 +278,12 @@ namespace jTDAL {
 							}
 						} else if( 'true' !== tmpValue ) {
 							current[ 2 ] += '+(false!==(t[i++]=' + tmpValue + ')&&("string"===typeof t[--i]||("number"===typeof t[i]&&!isNaN(t[i])))?" ' + tmpTDALrules[ 1 ] +
-															'=\\""+t[i]+"\\"":(true!==t[i]?"":"';
+															'=\\""+t[i]+"\\"":(true!==t[i]?"":"' + tmpTDALrules[ 1 ] + '"';
 							if( 'undefined' !== ( typeof attributes[ tmpTDALrules[ 1 ] ] ) ) {
 								current[ 1 ] = current[ 1 ].replace( new RegExp( '\\s*' + tmpTDALrules[ 1 ] + '(?:=([\'"]).*?\\1)?' ), '' );
-								current[ 2 ] += tmpTDALrules[ 1 ] + '"' +
-																( ( ( 'undefined' !== ( typeof attributes[ tmpTDALrules[ 1 ] ][ 3 ] ) ) && ( '' != attributes[ tmpTDALrules[ 1 ] ][ 3 ] ) ) ? '+"="+' +
+								current[ 2 ] += ( ( ( 'undefined' !== ( typeof attributes[ tmpTDALrules[ 1 ] ][ 3 ] ) ) && ( '' != attributes[ tmpTDALrules[ 1 ] ][ 3 ] ) ) ? '+"="+' +
 																JSON.stringify( String( attributes[ tmpTDALrules[ 1 ] ][ 2 ] + attributes[ tmpTDALrules[ 1 ] ][ 3 ] +
 																attributes[ tmpTDALrules[ 1 ] ][ 2 ] ) ) : "" );
-							} else {
-								current[ 2 ] += '"';
 							}
 							current[ 2 ] += '))';
 						}

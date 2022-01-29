@@ -44,7 +44,9 @@ The first that exists and is not false, is the used as result of the path expres
 
 If the path expression supports booleans, you can prepend [!] to a path.
 
-If the path expression supports strings, you can append, as last path, STRING:this is a string {and/you/can/have/paths/too}! {?this/path/is/true} showed only if the condition is true{?this/path/is/true}{?!this/is/false} visible only unless is true{?!this/is/false}
+If the path expression supports strings, you can append, as last path
+
+    STRING:this is a string {and/you/can/have/paths/too}! {?this/path/is/true} showed only if the condition is true{?this/path/is/true}{?!this/is/false} visible only unless is true{?!this/is/false}
 
 In a boolean check, empty lists or empty string will be considered "false".
 
