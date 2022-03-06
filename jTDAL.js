@@ -20,6 +20,18 @@ var jTDAL;
         'attributesTDAL': new RegExp('\\s*(data-tdal-[\\w-]+)=(?:([\'"])(.*?)\\2|([^>\\s\'"]+))', 'gi')
     };
     const HTML5VoidElements = ['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr'];
+    const textBoolFunction = 'b=(v)=>{' +
+        'return "object"===typeof v?null!==v&&0<Object.keys(v).length:(Array.isArray(v)?0<v.length:void 0!==typeof v&&false!==v&&""!==v)' +
+        '}';
+    const textCheckFunction = 'c=(a,b)=>{' +
+        'let z=!1,y=b.split("/"),x,w;' +
+        'if(0<y.length&&0<y[0].length)' +
+        'for(z=a,x=0;x<y.length&&1!==z;x++)' +
+        'z="object"===typeof z&&null!==z&&void 0!==(w="function"===typeof z[y[x]]?z[y[x]](r,d):z[y[x]])&&w;' +
+        'return z' +
+        '}';
+    let addCheckFunction = false;
+    let addBoolFunction = false;
     function ParseString(stringExpression) {
         let returnValue = '""';
         let match = null;
@@ -54,6 +66,9 @@ var jTDAL;
                 const paths = pathExpression.split('|');
                 const countFirstLevel = paths.length;
                 for (let indexFirstLevel = 0; indexFirstLevel < countFirstLevel; ++indexFirstLevel) {
+                    if (0 != indexFirstLevel) {
+                        returnValue += '||';
+                    }
                     const currentPath = paths[indexFirstLevel].replace(/^\s+/, '');
                     if (currentPath.startsWith('STRING:')) {
                         returnValue += '(' + ParseString(currentPath.substr(7)) + ')';
@@ -85,54 +100,30 @@ var jTDAL;
                                 }
                                 case 'REPEAT': {
                                     if (3 == path.length) {
-                                        openedBracket++;
-                                        returnValue += (boolPath ? '(' + (not ? '!' : '') : '') + '("undefined"!==typeof r["REPEAT"]&&';
-                                        returnValue += '"undefined"!==typeof r["REPEAT"]["' + path[1] + '"]&&';
-                                        let lastPath = 'r["REPEAT"]["' + path[1] + '"]["' + path[2] + '"]';
-                                        returnValue += '"undefined"!==typeof ' + lastPath;
-                                        returnValue += (boolPath ? ')?false!==(t[i]=' + lastPath + ')&&null!==t[i]' : '?' + lastPath) + ':';
+                                        returnValue += '(' + (boolPath ? (not ? '!' : '') + 'b(' : '') + 'c(r,"' + path.join('/') + '")' + (boolPath ? ')' : '');
                                     }
                                     break;
                                 }
                                 case 'GLOBAL': {
-                                    if (1 < path.length) {
-                                        const countSecondLevel = path.length;
-                                        returnValue += (boolPath ? (not ? '!(' : '(') : '') + '"object"===typeof(t[i]=d)&&null!==t[i]';
-                                        for (let indexSecondLevel = 1; indexSecondLevel < countSecondLevel; ++indexSecondLevel) {
-                                            returnValue += '&&';
-                                            let lastPath = 't[i]["' + path[indexSecondLevel] + '"]';
-                                            returnValue += '"undefined"!==typeof';
-                                            returnValue += '(t[i]=("function"===typeof ' + lastPath + '?' + lastPath + '(r,d)):' + lastPath + ')';
-                                        }
-                                        returnValue += (boolPath ? '?"object"===typeof t[i]?null!==t[i]&&0<Object.keys(t[i]).length:(Array.isArray(t[i])?0<t[i].length:false!==t[i]):false)?true' : '?t[i]') + ':';
+                                    if (1 < path.length && 0 < path[1].length) {
+                                        addCheckFunction = true;
+                                        addBoolFunction || (addBoolFunction = boolPath);
+                                        returnValue += (boolPath ? (not ? '!' : '') + 'b(' : '') + 'c(d,"' + path.slice(1).join('/') + '")' + (boolPath ? ')' : '');
                                     }
                                     break;
                                 }
                                 default: {
-                                    const countSecondLevel = path.length;
                                     openedBracket++;
-                                    returnValue += '(' + (boolPath ? (not ? '!' : '') + '(' : '') + '"object"===typeof(t[i]=r)&&null!==t[i]';
-                                    for (let indexSecondLevel = 0; indexSecondLevel < countSecondLevel; ++indexSecondLevel) {
-                                        returnValue += '&&';
-                                        let lastPath = 't[i]["' + path[indexSecondLevel] + '"]';
-                                        returnValue += '"undefined"!==typeof';
-                                        returnValue += '(t[i]=("function"===typeof ' + lastPath + '?' + lastPath + '(d,r):' + lastPath + '))';
-                                    }
-                                    returnValue += (boolPath ? '?"object"===typeof t[i]?null!==t[i]&&0<Object.keys(t[i]).length:(Array.isArray(t[i])?0<t[i].length:false!==t[i]):false)' + (not ? '&&' : '||') : '?t[i]:');
-                                    returnValue += (boolPath ? (not ? '!' : '') + '(' : '') + '"object"===typeof(t[i]=d)&&null!==t[i]';
-                                    for (let indexSecondLevel = 0; indexSecondLevel < countSecondLevel; ++indexSecondLevel) {
-                                        returnValue += '&&';
-                                        let lastPath = 't[i]["' + path[indexSecondLevel] + '"]';
-                                        returnValue += '"undefined"!==typeof';
-                                        returnValue += '(t[i]=("function"===typeof ' + lastPath + '?' + lastPath + '(d,r):' + lastPath + '))';
-                                    }
-                                    returnValue += (boolPath ? '?"object"===typeof t[i]?null!==t[i]&&0<Object.keys(t[i]).length:(Array.isArray(t[i])?0<t[i].length:false!==t[i]):false)?true' : '?t[i]') + ':';
+                                    addCheckFunction = true;
+                                    addBoolFunction || (addBoolFunction = boolPath);
+                                    returnValue += '(' + (boolPath ? (not ? '(!' : '') + 'b(' : '') + 'c(r,"' + path.join('/') + '")' + (boolPath ? ')' : '');
+                                    returnValue += (boolPath && not ? '&&' : '||');
+                                    returnValue += (boolPath ? (not ? '!' : '') + 'b(' : '') + 'c(d,"' + path.join('/') + '")' + (boolPath ? ')' + (not ? ')' : '') : '');
                                 }
                             }
                         }
                     }
                 }
-                returnValue += 'false';
             }
             for (let indexFirstLevel = 0; indexFirstLevel < openedBracket; indexFirstLevel++) {
                 returnValue += ')';
@@ -157,6 +148,7 @@ var jTDAL;
                 attributes[tmpMatch[1]] = tmpMatch;
             }
             let current = ['', tmpTDALTags[0], '', '', '', '', '', ''];
+            current[1] = current[1].replace(regexp['attributesTDAL'], '');
             let selfClosed = !!tmpTDALTags[6] || HTML5VoidElements.includes(tmpTDALTags[1].toLowerCase());
             if (!selfClosed) {
                 let closingPosition = [];
@@ -205,7 +197,7 @@ var jTDAL;
                         current[0] += '(!Array.isArray(t[--i])||(t[i]=Object.assign({},t[i])))&&';
                         current[0] += '("object"===typeof t[i]&&null!==t[i]&&0<Object.keys(t[i++]).length)&&(t[i++]=1)';
                         current[0] += '?';
-                        current[0] += 'Object.keys(t[i-2]).reduce(function(o,e){';
+                        current[0] += 'Object.keys(t[i-2]).reduce((o,e)=>{';
                         current[0] += 'r["' + tmpTDALrules[1] + '"]=t[i-2][e];';
                         current[0] += 'r["REPEAT"]["' + tmpTDALrules[1] + '"]={};';
                         current[0] += 'r["REPEAT"]["' + tmpTDALrules[1] + '"]["index"]=e;';
@@ -231,8 +223,7 @@ var jTDAL;
                             encoding[0] = '(new String(';
                             encoding[1] = ')).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;")';
                         }
-                        current[3] += '+(false!==(t[i++]=' + tmpValue + ')&&("string"===typeof t[--i]||("number"===typeof t[i]&&!isNaN(t[i])))?' + encoding[0] +
-                            't[i]' + encoding[1] + ':(true!==t[i]?"":""';
+                        current[3] += '+(false!==(t[i++]=' + tmpValue + ')&&("string"===typeof t[--i]||("number"===typeof t[i]&&!isNaN(t[i])))?' + encoding[0] + 't[i]' + encoding[1] + ':(true!==t[i]?"":""';
                         current[5] += '))';
                     }
                 }
@@ -249,8 +240,7 @@ var jTDAL;
                             encoding[0] = '(new String(';
                             encoding[1] = ')).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;")';
                         }
-                        current[0] += '+(false!==(t[i++]=' + tmpValue + ')&&("string"===typeof t[--i]||("number"===typeof t[i]&&!isNaN(t[i])))?' + encoding[0] +
-                            't[i]' + encoding[1] + ':(true!==t[i]?"":""';
+                        current[0] += '+(false!==(t[i++]=' + tmpValue + ')&&("string"===typeof t[--i]||("number"===typeof t[i]&&!isNaN(t[i])))?' + encoding[0] + 't[i]' + encoding[1] + ':(true!==t[i]?"":""';
                         current[7] = '))' + current[7];
                     }
                 }
@@ -263,13 +253,10 @@ var jTDAL;
                             }
                         }
                         else if ('true' !== tmpValue) {
-                            current[2] += '+(false!==(t[i++]=' + tmpValue + ')&&("string"===typeof t[--i]||("number"===typeof t[i]&&!isNaN(t[i])))?" ' + tmpTDALrules[1] +
-                                '=\\""+t[i]+"\\"":(true!==t[i]?"":"' + tmpTDALrules[1] + '"';
+                            current[2] += '+(false!==(t[i++]=' + tmpValue + ')&&("string"===typeof t[--i]||("number"===typeof t[i]&&!isNaN(t[i])))?" ' + tmpTDALrules[1] + '=\\""+t[i]+"\\"":(true!==t[i]?"":"' + tmpTDALrules[1] + '"';
                             if ('undefined' !== (typeof attributes[tmpTDALrules[1]])) {
                                 current[1] = current[1].replace(new RegExp('\\s*' + tmpTDALrules[1] + '(?:=([\'"]).*?\\1)?'), '');
-                                current[2] += ((('undefined' !== (typeof attributes[tmpTDALrules[1]][3])) && ('' != attributes[tmpTDALrules[1]][3])) ? '+"="+' +
-                                    JSON.stringify(String(attributes[tmpTDALrules[1]][2] + attributes[tmpTDALrules[1]][3] +
-                                        attributes[tmpTDALrules[1]][2])) : "");
+                                current[2] += ((('undefined' !== (typeof attributes[tmpTDALrules[1]][3])) && ('' != attributes[tmpTDALrules[1]][3])) ? '+"="+' + JSON.stringify(String(attributes[tmpTDALrules[1]][2] + attributes[tmpTDALrules[1]][3] + attributes[tmpTDALrules[1]][2])) : "");
                             }
                             current[2] += '))';
                         }
@@ -289,9 +276,6 @@ var jTDAL;
                         current[7] = ')' + current[7];
                     }
                 }
-                while (null !== (tmpMatch = regexp['attributesTDAL'].exec(current[1]))) {
-                    current[1] = current[1].replace(regexp['attributesTDAL'], '');
-                }
             }
             current[1] = current[1].replace(/\s*\/?>$/, '');
             if (selfClosed && (('' != current[4]) || ('' != current[3]) || ('' != current[5]))) {
@@ -306,7 +290,8 @@ var jTDAL;
         return (returnValue);
     }
     function Compile(template, trim = true, strip = true) {
-        return (('let r={"REPEAT":{}},i=0,t=[];return ' + (trim ? '(' : '') + '""' + Parse(strip ? template.replace(/<!--.*?-->/sg, '') : template)).replace(/(?<!\\)""\+/, '').replace(/(?<!\\)"\+"/g, '').replace(/\+""$/, '') + (trim ? ').trim()' : ''));
+        const returnValue = Parse(strip ? template.replace(/<!--.*?-->/sg, '') : template).replace(/(?<!\\)""\+/, '').replace(/(?<!\\)"\+"/g, '').replace(/\+""$/, '');
+        return ((addCheckFunction ? 'const ' + textCheckFunction + (addBoolFunction ? ',' + textBoolFunction : '') + ';' : '') + 'let r={"REPEAT":{}},i=0,t=[];return ' + (trim ? '(' : '') + '""' + returnValue + (trim ? ').trim()' : ''));
     }
     function CompileToFunction(template, trim = true, strip = true) {
         return new Function('d', Compile(template, trim, strip));
