@@ -1,7 +1,8 @@
 {
   "compilerOptions": {
-    "target": "es2017",
-    "module": "commonjs",
+    "target": "esnext",
+    "module": "esnext",
+    "moduleResolution": "bundler",
     "declaration": true,
     "removeComments": true,
     "strict": true,

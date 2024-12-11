@@ -9,12 +9,15 @@ While mustache is absolutely awesome, if find it syntax quite weird.
 Using attributes the page can be designed with any WYSIWYG editor or preview in the browser without the need of the actual rendering data.
 
 ## Usage     
-    <script type="text/javascript" src="jTDAL.js"></script>
+    <script type="module">
+    import JTDAL from 'https://cdn.jsdelivr.net/npm/jtdal/jTDAL.min.js';
+    ...
+    </script>
 or
 
-    const jTDAL = require( 'jtdal.js' );
-
-    const t = jTDAL.Compile( template );
+    import JTDAL from 'https://cdn.jsdelivr.net/npm/jtdal/jTDAL.min.js';
+    ...
+    const t = jTDAL.CompileToFunction( template );
     let result= t( data ); 
 
 ## Attributes

@@ -321,10 +321,8 @@ namespace jTDAL {
 		return 'function(d){' + Compile( template, trim, strip ) + '}';
 	}
 }
-// @ts-ignore
-if( 'undefined' !== typeof exports ) {
-	// @ts-ignore
-	exports.CompileToFunction = jTDAL.CompileToFunction;
-	// @ts-ignore
-	exports.CompileToString = jTDAL.CompileToString;
+
+export default {
+	CompileToFunction: jTDAL.CompileToFunction,
+	CompileToString: jTDAL.CompileToString
 }

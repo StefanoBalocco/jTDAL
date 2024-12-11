@@ -3,11 +3,12 @@
   "description": "Small template engine based on Zope TAL, using data attributes",
   "main": "jTDAL.min.js",
   "types": "jTDAL.d.ts",
+  "type": "module",
   "repository": {
     "type": "git",
     "url": "https://github.com/StefanoBalocco/jTDAL.git"
   },
-  "version": "2.1.7",
+  "version": "2.2",
   "keywords": [
     "template engine",
     "tal"
@@ -18,12 +19,11 @@
     "url": "https://github.com/StefanoBalocco/jTDAL/issues"
   },
   "homepage": "https://github.com/StefanoBalocco/jTDAL",
-  "dependencies": {},
   "scripts": {
     "build": "node_modules/typescript/bin/tsc && node_modules/terser/bin/terser jTDAL.js -o jTDAL.min.js -m -c --mangle-props regex=/^_/"
   },
   "devDependencies": {
-    "terser": ">=5.14.2",
-    "typescript": "4"
+    "terser": "~5",
+    "typescript": "~5"
   }
 }

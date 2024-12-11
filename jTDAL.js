@@ -107,7 +107,7 @@ var jTDAL;
                                 case 'GLOBAL': {
                                     if (1 < path.length && 0 < path[1].length) {
                                         addCheckFunction = true;
-                                        addBoolFunction || (addBoolFunction = boolPath);
+                                        addBoolFunction ||= boolPath;
                                         returnValue += (boolPath ? (not ? '!' : '') + 'b(' : '') + 'c(d,"' + path.slice(1).join('/') + '")' + (boolPath ? ')' : '');
                                     }
                                     break;
@@ -115,7 +115,7 @@ var jTDAL;
                                 default: {
                                     openedBracket++;
                                     addCheckFunction = true;
-                                    addBoolFunction || (addBoolFunction = boolPath);
+                                    addBoolFunction ||= boolPath;
                                     returnValue += '(' + (boolPath ? (not ? '(!' : '') + 'b(' : '') + 'c(r,"' + path.join('/') + '")' + (boolPath ? ')' : '');
                                     returnValue += (boolPath && not ? '&&' : '||');
                                     returnValue += (boolPath ? (not ? '!' : '') + 'b(' : '') + 'c(d,"' + path.join('/') + '")' + (boolPath ? ')' + (not ? ')' : '') : '');
@@ -302,7 +302,7 @@ var jTDAL;
     }
     jTDAL.CompileToString = CompileToString;
 })(jTDAL || (jTDAL = {}));
-if ('undefined' !== typeof exports) {
-    exports.CompileToFunction = jTDAL.CompileToFunction;
-    exports.CompileToString = jTDAL.CompileToString;
-}
+export default {
+    CompileToFunction: jTDAL.CompileToFunction,
+    CompileToString: jTDAL.CompileToString
+};
