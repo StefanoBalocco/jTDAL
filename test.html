@@ -221,26 +221,30 @@
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.slim.min.js" integrity="sha256-3edrmyuQ0w65f8gfBsqowzjJe2iM6n0nKciPUp8y+7E=" crossorigin="anonymous"></script>
 <script type="module">
-import * from 'https://cdn.jsdelivr.net/npm/jtdal/jTDAL.min.js'
+import jTDAL from './jTDAL.js';
 
-$( function( ) {
-	const template = [ jTDAL.CompileToFunction( $( '#template-tdal-condition' ).html( ) ), jTDAL.CompileToFunction( $( '#template-tdal-condition-in-repeat' ).html( ) ), jTDAL.CompileToFunction( $( '#template-tdal-attributes' ).html( ) ), jTDAL.CompileToFunction( $( '#template-tdal-repeat' ).html( ) ) ];
-	let params = { 'url': 'https://picsum.photos/id/1025/480/320' };
-	$( '#results-tdal-attributes' ).html( template[2]( params ) );
-	$( '#results-tdal-condition' ).html( template[0]( params ) );
-	params = {
-		items: [
-			{ 'URL': 'https://picsum.photos/id/1025/480/320' },
-			{ 'url': 'https://picsum.photos/id/1025/480/320' },
-			{ 'Url': 'https://picsum.photos/id/1025/480/320' },
-			{ 'url': 'https://picsum.photos/id/1026/480/320' }
-		]
-	};
-	$( '#results-tdal-condition-in-repeat' ).html( template[1]( params ) );
-	params = { 'items': [ 1025, 1062, 244, 40, 495, 582 ] };
-	$( '#results-tdal-repeat' ).html( template[3]( params ) );
-}
-);
+const htmlTemplate = document.getElementById( 'template-tdal-condition' ).innerHTML
+const template = [
+	jTDAL.CompileToFunction( document.getElementById( 'template-tdal-condition' ).innerHTML ),
+	jTDAL.CompileToFunction( document.getElementById( 'template-tdal-condition-in-repeat' ).innerHTML ),
+	jTDAL.CompileToFunction( document.getElementById( 'template-tdal-attributes' ).innerHTML ),
+	jTDAL.CompileToFunction( document.getElementById( 'template-tdal-repeat' ).innerHTML )
+];
+let params = { 'url': 'https://picsum.photos/id/1025/480/320' };
+let a = template[ 0 ]( params );
+document.getElementById( 'results-tdal-condition' ).innerHTML = template[ 0 ]( params );
+document.getElementById( 'results-tdal-attributes' ).innerHTML = template[ 2 ]( params );
+params = {
+	items: [
+		{ 'URL': 'https://picsum.photos/id/1025/480/320' },
+		{ 'url': 'https://picsum.photos/id/1025/480/320' },
+		{ 'Url': 'https://picsum.photos/id/1025/480/320' },
+		{ 'url': 'https://picsum.photos/id/1026/480/320' }
+	]
+};
+document.getElementById( 'results-tdal-condition-in-repeat' ).innerHTML = template[ 1 ]( params );
+params = { 'items': [ 1025, 1062, 244, 40, 495, 582 ] };
+document.getElementById( 'results-tdal-repeat' ).innerHTML = template[ 3 ]( params );
 </script>
 </body>
 </html>

@@ -10,15 +10,15 @@ Using attributes the page can be designed with any WYSIWYG editor or preview in 
 
 ## Usage     
     <script type="module">
-    import JTDAL from 'https://cdn.jsdelivr.net/npm/jtdal/jTDAL.min.js';
+    import JTDAL from 'https://unpkg.com/jtdal/jTDAL.min.js';
     ...
     </script>
 or
 
-    import JTDAL from 'https://cdn.jsdelivr.net/npm/jtdal/jTDAL.min.js';
+    import JTDAL from 'jTDAL';
     ...
     const t = jTDAL.CompileToFunction( template );
-    let result= t( data ); 
+    let result = t( data ); 
 
 ## Attributes
 The engine support the following data-attribute (the order isn't casual, is the resolve order):

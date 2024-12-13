@@ -1,14 +1,14 @@
 {
   "name": "jtdal",
   "description": "Small template engine based on Zope TAL, using data attributes",
-  "main": "jTDAL.min.js",
+  "exports": "./jTDAL.min.js",
   "types": "jTDAL.d.ts",
   "type": "module",
   "repository": {
     "type": "git",
     "url": "https://github.com/StefanoBalocco/jTDAL.git"
   },
-  "version": "2.2.0",
+  "version": "3.0.0",
   "keywords": [
     "template engine",
     "tal"

@@ -21,37 +21,25 @@ namespace jTDAL {
 	};
 	// {\?((?:[\w-\/]*[\w](?:[\s]*\|[\s]*[\w-\/]*[\w])*))}(.*?){\?(?:[\w-\/]*[\w](?:[\s]*\|[\s]*[\w-\/]*[\w])*)}
 	const HTML5VoidElements: string[] = [ 'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr' ];
-	const textBoolFunction: string = 'b=(v)=>{' +
-																	 'return "object"===typeof v?null!==v&&0<Object.keys(v).length:(Array.isArray(v)?0<v.length:void 0!==typeof v&&false!==v&&""!==v)' +
-																	 '}';
-	const textCheckFunction: string = 'c=(a,b)=>{' +
-																		'let z=!1,y=b.split("/"),x,w;' +
-																		'if(0<y.length&&0<y[0].length)' +
-																		'for(z=a,x=0;x<y.length&&1!==z;x++)' +
-																		'z="object"===typeof z&&null!==z&&void 0!==(w="function"===typeof z[y[x]]?z[y[x]](r,d):z[y[x]])&&w;' +
-																		'return z' +
-																		'}';
-	let addCheckFunction: boolean = false;
-	let addBoolFunction: boolean = false;
 
-	function ParseString( stringExpression: string ) {
+	function ParseString( stringExpression: string, features: { Check: boolean, Bool: boolean, Repeat: boolean } ) {
 		let returnValue: string = '""';
 		let match = null;
 		while( null != ( match = regexp[ 'pathString' ].exec( stringExpression ) ) ) {
 			if( 0 < match[ 'index' ] ) {
-				returnValue += '+' + JSON.stringify( String( stringExpression.substr( 0, match[ 'index' ] ) ) );
+				returnValue += '+' + JSON.stringify( String( stringExpression.substring( 0, match[ 'index' ] ) ) );
 			}
-			stringExpression = stringExpression.substr( match[ 'index' ] + match[ 0 ].length );
+			stringExpression = stringExpression.substring( match[ 'index' ] + match[ 0 ].length );
 			if( match[ 1 ] ) {
 				// simple path substitution
-				returnValue += '+' + ParsePath( match[ 1 ] );
+				returnValue += '+(a(' + ParsePath( match[ 1 ], features, false ) + ')&&("string"===typeof t[t[0]]||("number"===typeof t[t[0]]&&!isNaN(t[t[0]])))?t[t[0]]:"")';
 			} else if( match[ 2 ] ) {
 				// if condition
-				const tmpValue = ParsePath( match[ 2 ], true );
+				const tmpValue = ParsePath( match[ 2 ], features, true );
 				if( 'true' === tmpValue ) {
-					returnValue += '+' + ParseString( match[ 3 ] );
+					returnValue += '+' + ParseString( match[ 3 ], features );
 				} else if( 'false' !== tmpValue ) {
-					returnValue += '+(true===' + tmpValue + '?""+' + ParseString( match[ 3 ] ) + ':"")';
+					returnValue += '+(true===' + tmpValue + '?""+' + ParseString( match[ 3 ], features ) + ':"")';
 				} // if "static" false, the content of the condition should be removed
 			}
 		}
@@ -61,9 +49,9 @@ namespace jTDAL {
 		return returnValue;
 	}
 
-	function ParsePath( pathExpression: string, getBoolean: boolean = false ): string {
+	function ParsePath( pathExpression: string, features: { Check: boolean, Bool: boolean, Repeat: boolean }, getBoolean: boolean = false ): string {
 		/* Boolean conversion:
-		 * (false!==(t[i]=("function" === typeof #PATH#))&&null!==t[i]&&!(Array.isArray(t[i])&&1>t[i].length)&&!("object"===typeof t[i]&&1>Object.keys(t[i]).length))
+		 * (false!==(t[t[0]]=("function" === typeof #PATH#))&&null!==t[t[0]]&&!(Array.isArray(t[t[0]])&&1>t[t[0]].length)&&!("object"===typeof t[t[0]]&&1>Object.keys(t[t[0]]).length))
 		 */
 		let returnValue: string = '';
 		if( pathExpression ) {
@@ -77,12 +65,13 @@ namespace jTDAL {
 					}
 					const currentPath = paths[ indexFirstLevel ].replace( /^\s+/, '' );
 					if( currentPath.startsWith( 'STRING:' ) ) {
-						returnValue += '(' + ParseString( currentPath.substr( 7 ) ) + ')';
+						returnValue += '(' + ParseString( currentPath.substring( 7 ), features ) + ')';
 						break paths;
 					} else {
 						const not = ( '!' === currentPath[ 0 ] );
 						const boolPath = getBoolean || not;
 						const path = ( not ? currentPath.substring( 1 ) : currentPath ).split( '/' );
+						features.Bool ||= boolPath;
 						if( ( 0 < path.length ) && ( 0 < path[ 0 ].length ) ) {
 							switch( path[ 0 ] ) {
 								case 'FALSE': {
@@ -103,15 +92,16 @@ namespace jTDAL {
 								}
 								case 'REPEAT': {
 									if( 3 == path.length ) {
-										returnValue += '(' + ( boolPath ? ( not ? '!' : '' ) + 'b(' : '' ) + 'c(r,"' + path.join( '/' ) + '")' + ( boolPath ? ')' : '' );
+										features.Check = true;
+										features.Repeat = true;
+										returnValue += ( boolPath ? ( not ? '!' : '' ) + 'b(' : '' ) + 'c(r,"' + path.join( '/' ) + '")' + ( boolPath ? ')' : '' );
 									}
 									break;
 								}
 								case 'GLOBAL': {
 									// at least two tokens: GLOBAL/variable
 									if( 1 < path.length && 0 < path[ 1 ].length ) {
-										addCheckFunction = true;
-										addBoolFunction ||= boolPath;
+										features.Check = true;
 										// d must be a object
 										// Skip GLOBAL
 										returnValue += ( boolPath ? ( not ? '!' : '' ) + 'b(' : '' ) + 'c(d,"' + path.slice( 1 ).join( '/' ) + '")' + ( boolPath ? ')' : '' );
@@ -119,13 +109,15 @@ namespace jTDAL {
 									break;
 								}
 								default: {
-									openedBracket++;
-									addCheckFunction = true;
-									addBoolFunction ||= boolPath;
+									features.Check = true;
 									// not encapsulate checks between parenthesis because not checks are connected with &&
-									returnValue += '(' + ( boolPath ? ( not ? '(!' : '' ) + 'b(' : '' ) + 'c(r,"' + path.join( '/' ) + '")' + ( boolPath ? ')' : '' );
-									returnValue += ( boolPath && not ? '&&' : '||' );
-									returnValue += ( boolPath ? ( not ? '!' : '' ) + 'b(' : '' ) + 'c(d,"' + path.join( '/' ) + '")' + ( boolPath ? ')' + ( not ? ')' : '' ) : '' );
+									openedBracket++;
+									returnValue += '(';
+									if( features.Repeat ) {
+										returnValue += ( boolPath ? ( not ? '!' : '' ) + 'b(' : '' ) + 'c(r,"' + path.join( '/' ) + '")' + ( boolPath ? ')' : '' );
+										returnValue += ( boolPath && not ? '&&' : '||' );
+									}
+									returnValue += ( boolPath ? ( not ? '!' : '' ) + 'b(' : '' ) + 'c(d,"' + path.join( '/' ) + '")' + ( boolPath ? ')' : '' );
 								}
 							}
 						}
@@ -141,15 +133,15 @@ namespace jTDAL {
 		return returnValue;
 	}
 
-	function Parse( template: string ) {
+	function Parse( template: string, features: { Check: boolean, Bool: boolean, Repeat: boolean } ) {
 		let returnValue = '';
 		let tmpTDALTags = null;
 
 		while( null !== ( tmpTDALTags = regexp[ 'tagWithTDAL' ].exec( template ) ) ) {
 			if( 0 < tmpTDALTags[ 'index' ] ) {
-				returnValue += "+" + JSON.stringify( String( template.substr( 0, tmpTDALTags[ 'index' ] ) ) );
+				returnValue += "+" + JSON.stringify( String( template.substring( 0, tmpTDALTags[ 'index' ] ) ) );
 			}
-			template = template.substr( tmpTDALTags[ 'index' ] + tmpTDALTags[ 0 ].length );
+			template = template.substring( tmpTDALTags[ 'index' ] + tmpTDALTags[ 0 ].length );
 			let attributes: { [ key: string ]: RegExpExecArray } = {};
 			let tmpMatch: ( RegExpExecArray | null );
 			while( null !== ( tmpMatch = regexp[ 'tagAttributes' ].exec( tmpTDALTags[ 0 ] ) ) ) {
@@ -187,14 +179,14 @@ namespace jTDAL {
 				if( 'undefined' === typeof closingPosition[ 0 ] ) {
 					selfClosed = true;
 				} else {
-					current[ 4 ] += Parse( template.substr( 0, closingPosition[ 0 ] ) );
-					current[ 6 ] += template.substr( closingPosition[ 0 ], closingPosition[ 1 ] );
-					template = template.substr( closingPosition[ 0 ] + closingPosition[ 1 ] );
+					current[ 4 ] += Parse( template.substring( 0, closingPosition[ 0 ] ), features );
+					current[ 6 ] += template.substring( closingPosition[ 0 ], closingPosition[ 0 ] + closingPosition[ 1 ] );
+					template = template.substring( closingPosition[ 0 ] + closingPosition[ 1 ] );
 				}
 			}
 			tdal: {
 				if( attributes[ 'data-tdal-condition' ] && ( regexp[ 'condition' ].exec( attributes[ 'data-tdal-condition' ][ 3 ] ) ) ) {
-					let tmpValue = ParsePath( attributes[ 'data-tdal-condition' ][ 3 ], true );
+					let tmpValue = ParsePath( attributes[ 'data-tdal-condition' ][ 3 ], features, true );
 					if( 'false' === tmpValue ) {
 						// the tag (and it's content) should be removed
 						break tdal;
@@ -205,50 +197,51 @@ namespace jTDAL {
 				}
 				let tmpTDALrules;
 				if( attributes[ 'data-tdal-repeat' ] && ( tmpTDALrules = regexp[ 'repeat' ].exec( attributes[ 'data-tdal-repeat' ][ 3 ] ) ) ) {
-					let tmpValue = ParsePath( tmpTDALrules[ 2 ] );
+					let tmpValue = ParsePath( tmpTDALrules[ 2 ], features, false );
 					if( ( 'false' == tmpValue ) || ( '""' == tmpValue ) || ( 'true' == tmpValue ) ) {
 						// 0 repetition, same as condition false
 						break tdal;
 					} else {
 						current[ 0 ] += '+(';
 						// current i = object
-						current[ 0 ] += 'false!==(t[i++]=' + tmpValue + ')&&';
-						current[ 0 ] += '(!Array.isArray(t[--i])||(t[i]=Object.assign({},t[i])))&&';
+						current[ 0 ] += 'a(' + tmpValue + ')&&';
+						current[ 0 ] += '(!Array.isArray(t[t[0]])||(t[t[0]]=Object.assign({},t[t[0]])))&&';
 						// current i = index for object loop ( i+=1 )
-						current[ 0 ] += '("object"===typeof t[i]&&null!==t[i]&&0<Object.keys(t[i++]).length)&&(t[i++]=1)';
+						current[ 0 ] += '("object"===typeof t[t[0]]&&null!==t[t[0]]&&0<Object.keys(t[t[0]++]).length)&&(t[t[0]++]=1)';
 						current[ 0 ] += '?';
-						current[ 0 ] += 'Object.keys(t[i-2]).reduce((o,e)=>{';
-						current[ 0 ] += 'r["' + tmpTDALrules[ 1 ] + '"]=t[i-2][e];';
+						current[ 0 ] += 'Object.keys(t[t[0]-2]).reduce((o,e)=>{';
+						current[ 0 ] += 'r["' + tmpTDALrules[ 1 ] + '"]=t[t[0]-2][e];';
 						current[ 0 ] += 'r["REPEAT"]["' + tmpTDALrules[ 1 ] + '"]={};';
 						current[ 0 ] += 'r["REPEAT"]["' + tmpTDALrules[ 1 ] + '"]["index"]=e;';
 						// current i = free index ( i+=1 )
-						current[ 0 ] += 'r["REPEAT"]["' + tmpTDALrules[ 1 ] + '"]["number"]=t[i-1]++;';
+						current[ 0 ] += 'r["REPEAT"]["' + tmpTDALrules[ 1 ] + '"]["number"]=t[t[0]-1]++;';
 						current[ 0 ] += 'r["REPEAT"]["' + tmpTDALrules[ 1 ] + '"]["even"]=0==(r["REPEAT"]["' + tmpTDALrules[ 1 ] + '"]["number"]%2);';
 						current[ 0 ] += 'r["REPEAT"]["' + tmpTDALrules[ 1 ] + '"]["odd"]=1==(r["REPEAT"]["' + tmpTDALrules[ 1 ] + '"]["number"]%2);';
 						current[ 0 ] += 'r["REPEAT"]["' + tmpTDALrules[ 1 ] + '"]["first"]=1==r["REPEAT"]["' + tmpTDALrules[ 1 ] + '"]["number"];';
-						current[ 0 ] += 'r["REPEAT"]["' + tmpTDALrules[ 1 ] + '"]["length"]=Object.keys(t[i-2]);';
+						current[ 0 ] += 'r["REPEAT"]["' + tmpTDALrules[ 1 ] + '"]["length"]=Object.keys(t[t[0]-2]);';
 						current[ 0 ] += 'r["REPEAT"]["' + tmpTDALrules[ 1 ] + '"]["last"]=r["REPEAT"]["' + tmpTDALrules[ 1 ] + '"]["length"]==r["REPEAT"]["' +
 														tmpTDALrules[ 1 ] + '"]["number"];';
 						current[ 0 ] += 'return o';
+						features.Repeat = true;
 						// resetting i
-						current[ 7 ] = ';},""):"")+((i-=2)?"":"")' + current[ 7 ];
+						current[ 7 ] = ';},""):"")+((t[0]-=2)?"":"")' + current[ 7 ];
 					}
 				}
 				if( attributes[ 'data-tdal-content' ] && ( tmpTDALrules = regexp[ 'content' ].exec( attributes[ 'data-tdal-content' ][ 3 ] ) ) ) {
-					let tmpValue = ParsePath( tmpTDALrules[ 2 ] );
+					let tmpValue = ParsePath( tmpTDALrules[ 2 ], features, false );
 					if( 'false' == tmpValue ) {
 						current[ 4 ] = '';
 					} else if( 'true' != tmpValue ) {
 						let encoding = [ '', '' ];
 						if( 'structure' != tmpTDALrules[ 1 ] ) {
-							encoding[ 0 ] = '(new String(';
-							encoding[ 1 ] = ')).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;")';
+							encoding[ 0 ] = 'String(';
+							encoding[ 1 ] = ').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;")';
 						}
-						current[ 3 ] += '+(false!==(t[i++]=' + tmpValue + ')&&("string"===typeof t[--i]||("number"===typeof t[i]&&!isNaN(t[i])))?' + encoding[ 0 ] + 't[i]' + encoding[ 1 ] + ':(true!==t[i]?"":""';
+						current[ 3 ] += '+(a(' + tmpValue + ')&&("string"===typeof t[t[0]]||("number"===typeof t[t[0]]&&!isNaN(t[t[0]])))?' + encoding[ 0 ] + 't[t[0]]' + encoding[ 1 ] + ':(true!==t[t[0]]?"":""';
 						current[ 5 ] += '))';
 					}
 				} else if( attributes[ 'data-tdal-replace' ] && ( tmpTDALrules = regexp[ 'content' ].exec( attributes[ 'data-tdal-replace' ][ 3 ] ) ) ) {
-					let tmpValue = ParsePath( tmpTDALrules[ 2 ] );
+					let tmpValue = ParsePath( tmpTDALrules[ 2 ], features, false );
 					if( 'false' == tmpValue ) {
 						current[ 1 ] = '';
 						current[ 4 ] = '';
@@ -256,22 +249,22 @@ namespace jTDAL {
 					} else if( 'true' != tmpValue ) {
 						let encoding = [ '', '' ];
 						if( 'structure' != tmpTDALrules[ 1 ] ) {
-							encoding[ 0 ] = '(new String(';
-							encoding[ 1 ] = ')).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;")';
+							encoding[ 0 ] = 'String(';
+							encoding[ 1 ] = ').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;")';
 						}
-						current[ 0 ] += '+(false!==(t[i++]=' + tmpValue + ')&&("string"===typeof t[--i]||("number"===typeof t[i]&&!isNaN(t[i])))?' + encoding[ 0 ] + 't[i]' + encoding[ 1 ] + ':(true!==t[i]?"":""';
+						current[ 0 ] += '+(a(' + tmpValue + ')&&("string"===typeof t[t[0]]||("number"===typeof t[t[0]]&&!isNaN(t[t[0]])))?' + encoding[ 0 ] + 't[t[0]]' + encoding[ 1 ] + ':(true!==t[t[0]]?"":""';
 						current[ 7 ] = '))' + current[ 7 ];
 					}
 				}
 				if( attributes[ 'data-tdal-attributes' ] && ( tmpTDALrules = regexp[ 'attributes' ].exec( attributes[ 'data-tdal-attributes' ][ 3 ] ) ) ) {
 					while( null !== tmpTDALrules ) {
-						let tmpValue = ParsePath( tmpTDALrules[ 2 ] );
+						let tmpValue = ParsePath( tmpTDALrules[ 2 ], features, false );
 						if( 'false' === tmpValue ) {
 							if( 'undefined' !== ( typeof attributes[ tmpTDALrules[ 1 ] ] ) ) {
 								current[ 1 ] = current[ 1 ].replace( new RegExp( '\\s*' + tmpTDALrules[ 1 ] + '(?:=([\'"]).*?\\1)?' ), '' );
 							}
 						} else if( 'true' !== tmpValue ) {
-							current[ 2 ] += '+(false!==(t[i++]=' + tmpValue + ')&&("string"===typeof t[--i]||("number"===typeof t[i]&&!isNaN(t[i])))?" ' + tmpTDALrules[ 1 ] + '=\\""+t[i]+"\\"":(true!==t[i]?"":"' + tmpTDALrules[ 1 ] + '"';
+							current[ 2 ] += '+(a(' + tmpValue + ')&&("string"===typeof t[t[0]]||("number"===typeof t[t[0]]&&!isNaN(t[t[0]])))?" ' + tmpTDALrules[ 1 ] + '=\\""+t[t[0]]+"\\"":(true!==t[t[0]]?"":"' + tmpTDALrules[ 1 ] + '"';
 							if( 'undefined' !== ( typeof attributes[ tmpTDALrules[ 1 ] ] ) ) {
 								current[ 1 ] = current[ 1 ].replace( new RegExp( '\\s*' + tmpTDALrules[ 1 ] + '(?:=([\'"]).*?\\1)?' ), '' );
 								current[ 2 ] += ( ( ( 'undefined' !== ( typeof attributes[ tmpTDALrules[ 1 ] ][ 3 ] ) ) && ( '' != attributes[ tmpTDALrules[ 1 ] ][ 3 ] ) ) ? '+"="+' + JSON.stringify( String( attributes[ tmpTDALrules[ 1 ] ][ 2 ] + attributes[ tmpTDALrules[ 1 ] ][ 3 ] + attributes[ tmpTDALrules[ 1 ] ][ 2 ] ) ) : "" );
@@ -282,7 +275,7 @@ namespace jTDAL {
 					}
 				}
 				if( attributes[ 'data-tdal-omittag' ] && ( regexp[ 'condition' ].exec( attributes[ 'data-tdal-omittag' ][ 3 ] ) ) ) {
-					let tmpValue = ParsePath( attributes[ 'data-tdal-omittag' ][ 3 ], true );
+					let tmpValue = ParsePath( attributes[ 'data-tdal-omittag' ][ 3 ], features, true );
 					if( 'true' == tmpValue ) {
 						current[ 1 ] = '';
 						current[ 6 ] = '';
@@ -305,12 +298,45 @@ namespace jTDAL {
 										 JSON.stringify( String( current[ 6 ] ) ) + current[ 7 ];
 		}
 		returnValue += '+' + JSON.stringify( String( template ) );
-		return ( returnValue );
+		return returnValue;
 	}
 
 	function Compile( template: string, trim: boolean = true, strip: boolean = true ): string {
-		const returnValue = Parse( strip ? template.replace( /<!--.*?-->/sg, '' ) : template ).replace( /(?<!\\)""\+/, '' ).replace( /(?<!\\)"\+"/g, '' ).replace( /\+""$/, '' );
-		return ( ( addCheckFunction ? 'const ' + textCheckFunction + ( addBoolFunction ? ',' + textBoolFunction : '' ) + ';' : '' ) + 'let r={"REPEAT":{}},i=0,t=[];return ' + ( trim ? '(' : '' ) + '""' + returnValue + ( trim ? ').trim()' : '' ) );
+		const features: { Check: boolean, Bool: boolean, Repeat: boolean } = {
+			Check: false,
+			Bool: false,
+			Repeat: false
+		};
+		let tmpValue = Parse( strip ? template.replace( /<!--.*?-->/sg, '' ) : template, features );
+		let returnValue = 'let ' + ( features.Repeat ? 'r={"REPEAT":{}},' : '' ) + 't=[1];';
+		returnValue += 'const ';
+		returnValue += 'a=(e)=>{';
+		returnValue += 't[t[0]]=e;';
+		returnValue += 'return 1';
+		returnValue += '}';
+		if( features.Check ) {
+			returnValue += ',c=(a,b)=>{';
+			returnValue += 'let z=!1,y=b.split("/"),x,w;';
+			returnValue += 'if(0<y.length&&0<y[0].length)';
+			returnValue += 'for(z=a,x=0;x<y.length&&1!==z;x++)';
+			returnValue += 'z="object"===typeof z&&null!==z&&void 0!==(w="function"===typeof z[y[x]]?z[y[x]](d,' + ( features.Repeat ? 'r' : '{}' ) + '):z[y[x]])&&w;';
+			returnValue += 'return z';
+			returnValue += '}';
+			if( features.Bool ) {
+				returnValue += ',b=(v)=>{';
+				returnValue += 'return "object"===typeof v?null!==v&&0<Object.keys(v).length:(Array.isArray(v)?0<v.length:void 0!==typeof v&&false!==v&&""!==v)';
+				returnValue += '}';
+			}
+			returnValue += ';';
+		}
+		returnValue += 'return ' + ( trim ? '(' : '' ) + '""' + tmpValue + ( trim ? ').trim()' : '' );
+		tmpValue = '';
+		do {
+			tmpValue = returnValue;
+			returnValue = returnValue.replace( /(?<!\\)"\+"/g, '' ).replace( '(true!==t[t[0]]?"":"")', '""' );
+		}
+		while( tmpValue != returnValue );
+		return returnValue;
 	}
 
 	export function CompileToFunction( template: string, trim: boolean = true, strip: boolean = true ): Function {
@@ -325,4 +351,4 @@ namespace jTDAL {
 export default {
 	CompileToFunction: jTDAL.CompileToFunction,
 	CompileToString: jTDAL.CompileToString
-}
+};
