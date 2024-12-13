@@ -20,7 +20,7 @@ var jTDAL;
         'attributesTDAL': new RegExp('\\s*(data-tdal-[\\w-]+)=(?:([\'"])(.*?)\\2|([^>\\s\'"]+))', 'gi')
     };
     const HTML5VoidElements = ['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr'];
-    function ParseString(stringExpression, features) {
+    function ParseString(stringExpression) {
         let returnValue = '""';
         let match = null;
         while (null != (match = regexp['pathString'].exec(stringExpression))) {
@@ -29,15 +29,15 @@ var jTDAL;
             }
             stringExpression = stringExpression.substring(match['index'] + match[0].length);
             if (match[1]) {
-                returnValue += '+(a(' + ParsePath(match[1], features, false) + ')&&("string"===typeof t[t[0]]||("number"===typeof t[t[0]]&&!isNaN(t[t[0]])))?t[t[0]]:"")';
+                returnValue += '+(a(' + ParsePath(match[1], false) + ')&&("string"===typeof t[t[0]]||("number"===typeof t[t[0]]&&!isNaN(t[t[0]])))?t[t[0]]:"")';
             }
             else if (match[2]) {
-                const tmpValue = ParsePath(match[2], features, true);
+                const tmpValue = ParsePath(match[2], true);
                 if ('true' === tmpValue) {
-                    returnValue += '+' + ParseString(match[3], features);
+                    returnValue += '+' + ParseString(match[3]);
                 }
                 else if ('false' !== tmpValue) {
-                    returnValue += '+(true===' + tmpValue + '?""+' + ParseString(match[3], features) + ':"")';
+                    returnValue += '+(true===' + tmpValue + '?""+' + ParseString(match[3]) + ':"")';
                 }
             }
         }
@@ -46,7 +46,7 @@ var jTDAL;
         }
         return returnValue;
     }
-    function ParsePath(pathExpression, features, getBoolean = false) {
+    function ParsePath(pathExpression, getBoolean = false) {
         let returnValue = '';
         if (pathExpression) {
             let openedBracket = 0;
@@ -59,14 +59,13 @@ var jTDAL;
                     }
                     const currentPath = paths[indexFirstLevel].replace(/^\s+/, '');
                     if (currentPath.startsWith('STRING:')) {
-                        returnValue += '(' + ParseString(currentPath.substring(7), features) + ')';
+                        returnValue += '(' + ParseString(currentPath.substring(7)) + ')';
                         break paths;
                     }
                     else {
                         const not = ('!' === currentPath[0]);
                         const boolPath = getBoolean || not;
                         const path = (not ? currentPath.substring(1) : currentPath).split('/');
-                        features.Bool ||= boolPath;
                         if ((0 < path.length) && (0 < path[0].length)) {
                             switch (path[0]) {
                                 case 'FALSE': {
@@ -89,27 +88,21 @@ var jTDAL;
                                 }
                                 case 'REPEAT': {
                                     if (3 == path.length) {
-                                        features.Check = true;
-                                        features.Repeat = true;
                                         returnValue += (boolPath ? (not ? '!' : '') + 'b(' : '') + 'c(r,"' + path.join('/') + '")' + (boolPath ? ')' : '');
                                     }
                                     break;
                                 }
                                 case 'GLOBAL': {
                                     if (1 < path.length && 0 < path[1].length) {
-                                        features.Check = true;
                                         returnValue += (boolPath ? (not ? '!' : '') + 'b(' : '') + 'c(d,"' + path.slice(1).join('/') + '")' + (boolPath ? ')' : '');
                                     }
                                     break;
                                 }
                                 default: {
-                                    features.Check = true;
                                     openedBracket++;
                                     returnValue += '(';
-                                    if (features.Repeat) {
-                                        returnValue += (boolPath ? (not ? '!' : '') + 'b(' : '') + 'c(r,"' + path.join('/') + '")' + (boolPath ? ')' : '');
-                                        returnValue += (boolPath && not ? '&&' : '||');
-                                    }
+                                    returnValue += (boolPath ? (not ? '!' : '') + 'b(' : '') + 'c(r,"' + path.join('/') + '")' + (boolPath ? ')' : '');
+                                    returnValue += (boolPath && not ? '&&' : '||');
                                     returnValue += (boolPath ? (not ? '!' : '') + 'b(' : '') + 'c(d,"' + path.join('/') + '")' + (boolPath ? ')' : '');
                                 }
                             }
@@ -126,7 +119,7 @@ var jTDAL;
         }
         return returnValue;
     }
-    function Parse(template, features) {
+    function Parse(template) {
         let returnValue = '';
         let tmpTDALTags = null;
         while (null !== (tmpTDALTags = regexp['tagWithTDAL'].exec(template))) {
@@ -161,14 +154,14 @@ var jTDAL;
                     selfClosed = true;
                 }
                 else {
-                    current[4] += Parse(template.substring(0, closingPosition[0]), features);
+                    current[4] += Parse(template.substring(0, closingPosition[0]));
                     current[6] += template.substring(closingPosition[0], closingPosition[0] + closingPosition[1]);
                     template = template.substring(closingPosition[0] + closingPosition[1]);
                 }
             }
             tdal: {
                 if (attributes['data-tdal-condition'] && (regexp['condition'].exec(attributes['data-tdal-condition'][3]))) {
-                    let tmpValue = ParsePath(attributes['data-tdal-condition'][3], features, true);
+                    let tmpValue = ParsePath(attributes['data-tdal-condition'][3], true);
                     if ('false' === tmpValue) {
                         break tdal;
                     }
@@ -179,7 +172,7 @@ var jTDAL;
                 }
                 let tmpTDALrules;
                 if (attributes['data-tdal-repeat'] && (tmpTDALrules = regexp['repeat'].exec(attributes['data-tdal-repeat'][3]))) {
-                    let tmpValue = ParsePath(tmpTDALrules[2], features, false);
+                    let tmpValue = ParsePath(tmpTDALrules[2], false);
                     if (('false' == tmpValue) || ('""' == tmpValue) || ('true' == tmpValue)) {
                         break tdal;
                     }
@@ -201,12 +194,11 @@ var jTDAL;
                         current[0] += 'r["REPEAT"]["' + tmpTDALrules[1] + '"]["last"]=r["REPEAT"]["' + tmpTDALrules[1] + '"]["length"]==r["REPEAT"]["' +
                             tmpTDALrules[1] + '"]["number"];';
                         current[0] += 'return o';
-                        features.Repeat = true;
-                        current[7] = ';},""):"")+((t[0]-=2)?"":"")' + current[7];
+                        current[7] = ';},""):"")+((t[0]-=2)&&(delete r["REPEAT"]["' + tmpTDALrules[1] + '"])&&delete(r["' + tmpTDALrules[1] + '"])?"":"")' + current[7];
                     }
                 }
                 if (attributes['data-tdal-content'] && (tmpTDALrules = regexp['content'].exec(attributes['data-tdal-content'][3]))) {
-                    let tmpValue = ParsePath(tmpTDALrules[2], features, false);
+                    let tmpValue = ParsePath(tmpTDALrules[2], false);
                     if ('false' == tmpValue) {
                         current[4] = '';
                     }
@@ -221,7 +213,7 @@ var jTDAL;
                     }
                 }
                 else if (attributes['data-tdal-replace'] && (tmpTDALrules = regexp['content'].exec(attributes['data-tdal-replace'][3]))) {
-                    let tmpValue = ParsePath(tmpTDALrules[2], features, false);
+                    let tmpValue = ParsePath(tmpTDALrules[2], false);
                     if ('false' == tmpValue) {
                         current[1] = '';
                         current[4] = '';
@@ -239,7 +231,7 @@ var jTDAL;
                 }
                 if (attributes['data-tdal-attributes'] && (tmpTDALrules = regexp['attributes'].exec(attributes['data-tdal-attributes'][3]))) {
                     while (null !== tmpTDALrules) {
-                        let tmpValue = ParsePath(tmpTDALrules[2], features, false);
+                        let tmpValue = ParsePath(tmpTDALrules[2], false);
                         if ('false' === tmpValue) {
                             if ('undefined' !== (typeof attributes[tmpTDALrules[1]])) {
                                 current[1] = current[1].replace(new RegExp('\\s*' + tmpTDALrules[1] + '(?:=([\'"]).*?\\1)?'), '');
@@ -257,7 +249,7 @@ var jTDAL;
                     }
                 }
                 if (attributes['data-tdal-omittag'] && (regexp['condition'].exec(attributes['data-tdal-omittag'][3]))) {
-                    let tmpValue = ParsePath(attributes['data-tdal-omittag'][3], features, true);
+                    let tmpValue = ParsePath(attributes['data-tdal-omittag'][3], true);
                     if ('true' == tmpValue) {
                         current[1] = '';
                         current[6] = '';
@@ -283,33 +275,24 @@ var jTDAL;
         return returnValue;
     }
     function Compile(template, trim = true, strip = true) {
-        const features = {
-            Check: false,
-            Bool: false,
-            Repeat: false
-        };
-        let tmpValue = Parse(strip ? template.replace(/<!--.*?-->/sg, '') : template, features);
-        let returnValue = 'let ' + (features.Repeat ? 'r={"REPEAT":{}},' : '') + 't=[1];';
+        let tmpValue = Parse(strip ? template.replace(/<!--.*?-->/sg, '') : template);
+        let returnValue = 'let r={"REPEAT":{}},t=[1];';
         returnValue += 'const ';
         returnValue += 'a=(e)=>{';
         returnValue += 't[t[0]]=e;';
         returnValue += 'return 1';
         returnValue += '}';
-        if (features.Check) {
-            returnValue += ',c=(a,b)=>{';
-            returnValue += 'let z=!1,y=b.split("/"),x,w;';
-            returnValue += 'if(0<y.length&&0<y[0].length)';
-            returnValue += 'for(z=a,x=0;x<y.length&&1!==z;x++)';
-            returnValue += 'z="object"===typeof z&&null!==z&&void 0!==(w="function"===typeof z[y[x]]?z[y[x]](d,' + (features.Repeat ? 'r' : '{}') + '):z[y[x]])&&w;';
-            returnValue += 'return z';
-            returnValue += '}';
-            if (features.Bool) {
-                returnValue += ',b=(v)=>{';
-                returnValue += 'return "object"===typeof v?null!==v&&0<Object.keys(v).length:(Array.isArray(v)?0<v.length:void 0!==typeof v&&false!==v&&""!==v)';
-                returnValue += '}';
-            }
-            returnValue += ';';
-        }
+        returnValue += ',c=(a,b)=>{';
+        returnValue += 'let z=!1,y=b.split("/"),x,w;';
+        returnValue += 'if(0<y.length&&0<y[0].length)';
+        returnValue += 'for(z=a,x=0;x<y.length&&1!==z;x++)';
+        returnValue += 'z="object"===typeof z&&null!==z&&void 0!==(w="function"===typeof z[y[x]]?z[y[x]](d,r):z[y[x]])&&w;';
+        returnValue += 'return z';
+        returnValue += '}';
+        returnValue += ',b=(v)=>{';
+        returnValue += 'return "object"===typeof v?null!==v&&0<Object.keys(v).length:(Array.isArray(v)?0<v.length:void 0!==typeof v&&false!==v&&""!==v)';
+        returnValue += '}';
+        returnValue += ';';
         returnValue += 'return ' + (trim ? '(' : '') + '""' + tmpValue + (trim ? ').trim()' : '');
         tmpValue = '';
         do {

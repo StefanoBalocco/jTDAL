@@ -1,103 +1,164 @@
 # jTDAL
-Small template engine based on Zope TAL, using data attributes
 
-Written in Typescript, for node & browser.
+Small template engine based on Zope TAL, using data attributes.
+
+Written in TypeScript, for Node.js and the browser.
 
 ## Why another template engine?
-Because I didn't found a fast javascript template engine based on attributes.
-While mustache is absolutely awesome, if find it syntax quite weird.
-Using attributes the page can be designed with any WYSIWYG editor or preview in the browser without the need of the actual rendering data.
 
-## Usage     
-    <script type="module">
-    import JTDAL from 'https://unpkg.com/jtdal/jTDAL.min.js';
-    ...
-    </script>
-or
+Because I didn't find a fast JavaScript template engine based on attributes. While Mustache is absolutely awesome, I find its syntax quite weird. Using attributes, the page can be designed with any WYSIWYG editor or previewed in the browser without the need for the actual rendering data.
 
-    import JTDAL from 'jTDAL';
-    ...
-    const t = jTDAL.CompileToFunction( template );
-    let result = t( data ); 
+## Installation and Usage
+
+You can use jTDAL directly in the browser or as an npm package.
+
+### Browser
+
+```html
+<script type="module">
+  import jTDAL from 'https://unpkg.com/jtdal/jTDAL.min.js';
+  const template = `<div data-tdal-content="foo"></div>`;
+  const t = jTDAL.CompileToFunction(template);
+  const data = { foo: "Hello, World!" };
+  const result = t(data);
+  document.getElementById( 'result' ).innerHTML = result;
+</script>
+```
+
+### Node.js
+
+Install jTDAL via npm:
+
+```bash
+npm install jtdal
+```
+
+Then use it in your project:
+
+```javascript
+import jTDAL from 'jtdal';
+
+const template = `<div data-tdal-content="foo"></div>`;
+const t = jTDAL.CompileToFunction(template);
+const data = { foo: "Hello, World!" };
+const result = t(data);
+console.log(result);
+```
 
 ## Attributes
-The engine support the following data-attribute (the order isn't casual, is the resolve order):
-* data-tdal-condition="path-expression-boolean-mod-allowed"
-* data-tdal-repeat="repeat-variabile path-expression"
-* data-tdal-content="path-expression-string-allowed" OR
-* data-tdal-replace="path-expression-string-allowed"
-* data-tdal-attributes="attribute path-expression-string-allowed[;;attributes path-expression-string-allowed]"
-* data-tdal-omittag="path-expression-boolean-mod-allowed"
 
-I plan the implement the jTDAL equivalent of the TAL's METAL (partials in mustache) in a future update.
+The engine supports the following `data-` attributes. These attributes are resolved in the specified order:
 
-### Path expression
-A path expression indicate the position of the value in the data object.
-Having:
+1. `data-tdal-condition="path-expression-boolean-mod-allowed"`
 
-    data = { foo: "bar", foobar: { bar: "foo" } };
+2. `data-tdal-repeat="variable-name path-expression"`
 
-"foobar/bar" resolve to foo, while "foo" resolve to bar.
+3. `data-tdal-content="path-expression-string-allowed`
+
+4. `data-tdal-replace="path-expression-string-allowed"`
+
+5. `data-tdal-attributes="attribute path-expression-string-allowed[;;attribute path-expression-string-allowed]"`
+
+6. `data-tdal-omittag="path-expression-boolean-mod-allowed"`
+
+In the documentation below, the attributes are described in the following order for better understanding:
+
+1. Omittag
+2. Attributes
+3. Content
+4. Replace
+5. Condition
+6. Repeat
+
+### Planned Features
+
+Future updates will include the jTDAL equivalent of TAL's METAL (partials in Mustache).
+
+### Path Expressions
+
+A path expression indicates the position of the value in the data object. Given the following data:
+
+```javascript
+data = { foo: "bar", foobar: { bar: "foo" } };
+```
+
+- `foobar/bar` resolves to `foo`
+- `foo` resolves to `bar`
 
 The syntax of a path expression is:
 
-    path/notexistant| existing/path | never/reached
+```plaintext
+path/nonexistent | existing/path | never/reached
+```
 
-The first that exists and is not false, is the used as result of the path expression. Otherwise false is returned.
+The first existing and truthy path is used as the result. If no paths match, `false` is returned.
 
-If the path expression supports booleans, you can prepend [!] to a path.
+#### Modifiers
 
-If the path expression supports strings, you can append, as last path
+- **Booleans**: Prefix with `!` for negation.
+- **Strings**: Prepend `STRING:` to define static strings or templates with placeholders.
+- **Conditions**: Use `{?condition}` or `{?!condition}` for conditional inclusions within strings.
 
-    STRING:this is a string {and/you/can/have/paths/too}! {?this/path/is/true} showed only if the condition is true{?this/path/is/true}{?!this/is/false} visible only unless is true{?!this/is/false}
+Special keywords:
 
-In a boolean check, empty lists or empty string will be considered "false".
+- `TRUE`: Halts parsing and returns `true`.
+- `FALSE`: Halts parsing and returns `false`.
 
-There are also special keywords availabe in the path expression: TRUE and FALSE. When one of those is reached, the expression parsing will stop.
+### Attribute Details
 
-    FALSE | never/reached
-    TRUE | never/reached
+#### Omittag
 
-### Condition
-    data-tdal-condition="!exists | !TRUE | FALSE | element"
+```html
+<span data-tdal-omittag="!exists | !TRUE | FALSE | element">Content</span>
+```
 
-If the result of the path expression is false, the tag and its contents will be removed.
+Removes the tag while keeping its content if the path expression evaluates to `true`.
 
-### Repeat
-    data-tdal-repeat="variable-name path/array | path/object | FALSE"
+#### Attributes
 
-If the result of the path expression is an object or an array, you can iterate between the elements.
+```html
+<a data-tdal-attributes="href path/link | STRING:https://example.org/{page};;class STRING:blue-link">Link name</a>
+```
 
-While iterating, a special REPEAT array and a variable will became availables.
-The REPEAT array is reachable throught any path expression and contains:
-* index: currently index of the array (or the key if is an object)
-* number: current iteration, starting from 1
-* even: true if the current iteration is even
-* odd: true if the current iteration is odd
-* first: true if is the first element
-* last: true if is the last element
-* length: the number of items in the array or the number of keys in the object
+Adds or modifies multiple attributes based on the path expression. Each attribute-value pair is separated by `;;`. Existing attribute values are preserved if the expression evaluates to `true`.
 
-### Content
-    data-tdal-content="path-expression-string-allowed"
+#### Content
 
-Replace the content of the tag with the result of the path-expression. Mutually exclusive with Replace (will change in a near future).
+```html
+<span data-tdal-content="path-expression">Something</span>
+```
 
-If the result of the path expression is false, the content will be removed. If is true, the default content will be kept.
+Replaces the tag's content with the result of the path expression. If the expression is false, the content is removed.
 
-### Replace
-    data-tdal-content="path-expression-string-allowed"
+#### Replace
 
-Replace the tag and its content with the result of the path-expression. Mutually exclusive with Content (will change in a near future).
+```html
+<div data-tdal-replace="path-expression">Replaced content</div>
+```
 
-If the result of the path expression is "false", the tag and its contents will be removed (like a false data-tdal-condition). If is "true", the default content will be kept.
+Replaces the tag and its contents with the result of the path expression. If the expression is false, the tag and its contents are removed.
 
-### Attribute
-    data-tdal-attributes="href link | STRING:https://www.example.org/{page};;class STRING:link-color-blue"
+#### Condition
 
-Add an attribute or replace the content of an attribute with the result of the path expression. If the expression value is "true" current attribute content will be kept.
+```html
+<div data-tdal-condition="!exists | !TRUE | FALSE | element">Conditional element</div>
+```
 
-### Omittag
-    data-tdal-omittag="!exists | !TRUE | FALSE | element"
+Removes the tag and its contents if the path expression evaluates to `false`.
 
-If the result of the path expression is true, remove the tag but not its content.
+#### Repeat
+
+```html
+<ul>
+  <li data-tdal-repeat="item path/array" data-tdal-content="item">Example item</li>
+</ul>
+```
+
+Repeats the tag for each element in an array or object. While iterating, a `REPEAT` object and the loop variable are available. The `REPEAT` object provides:
+
+- `index`: Current index (or key for objects).
+- `number`: Current iteration, starting from 1.
+- `even`, `odd`: Boolean flags for even/odd iterations.
+- `first`, `last`: Boolean flags for the first/last element.
+- `length`: Total items in the array or keys in the object.
+
