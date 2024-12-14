@@ -110,7 +110,7 @@ namespace jTDAL {
 									if( boolPath ){
 										returnValue += ( not?'!(':'') + '(a(c(r,"' + path.join( '/' ) + '"))&&false!==b(t[t[0]]))||(a(c(d,"' + path.join( '/' ) + '"))&&false!==b(t[t[0]]))' + ( not?')':'');
 									} else {
-										returnValue += '(a(c(r,"' + path.join( '/' ) + '"))&&false!==t[t[0]]?t[t[0]]:(a(c(d,"' + path.join( '/' ) + '"))&&false!==t[t[0]]?t[t[0]]:false))';
+										returnValue += '((a(c(r,"' + path.join( '/' ) + '"))||a(c(d,"' + path.join( '/' ) + '")))?t[t[0]]:false)';
 									}
 								}
 							}
@@ -300,7 +300,7 @@ namespace jTDAL {
 		returnValue += 'const ';
 		returnValue += 'a=(e)=>{';
 		returnValue += 't[t[0]]=e;';
-		returnValue += 'return 1';
+		returnValue += 'return false!==t[t[0]]';
 		returnValue += '}';
 		returnValue += ',c=(a,b)=>{';
 		returnValue += 'let z=!1,y=b.split("/"),x,w;';
