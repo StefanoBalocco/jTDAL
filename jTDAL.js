@@ -57,12 +57,13 @@ var jTDAL;
                     if (0 != indexFirstLevel) {
                         returnValue += '||';
                     }
-                    const currentPath = paths[indexFirstLevel].replace(/^\s+/, '');
+                    let currentPath = paths[indexFirstLevel].replace(/^\s+/, '');
                     if (currentPath.startsWith('STRING:')) {
                         returnValue += '(' + ParseString(currentPath.substring(7)) + ')';
                         break paths;
                     }
                     else {
+                        currentPath = currentPath.replace(/\s+$/, '');
                         const not = ('!' === currentPath[0]);
                         const boolPath = getBoolean || not;
                         const path = (not ? currentPath.substring(1) : currentPath).split('/');
@@ -99,11 +100,12 @@ var jTDAL;
                                     break;
                                 }
                                 default: {
-                                    openedBracket++;
-                                    returnValue += '(';
-                                    returnValue += (boolPath ? (not ? '!' : '') + 'b(' : '') + 'c(r,"' + path.join('/') + '")' + (boolPath ? ')' : '');
-                                    returnValue += (boolPath && not ? '&&' : '||');
-                                    returnValue += (boolPath ? (not ? '!' : '') + 'b(' : '') + 'c(d,"' + path.join('/') + '")' + (boolPath ? ')' : '');
+                                    if (boolPath) {
+                                        returnValue += (not ? '!(' : '') + '(a(c(r,"' + path.join('/') + '"))&&false!==b(t[t[0]]))||(a(c(d,"' + path.join('/') + '"))&&false!==b(t[t[0]]))' + (not ? ')' : '');
+                                    }
+                                    else {
+                                        returnValue += '(a(c(r,"' + path.join('/') + '"))&&false!==t[t[0]]?t[t[0]]:(a(c(d,"' + path.join('/') + '"))&&false!==t[t[0]]?t[t[0]]:false))';
+                                    }
                                 }
                             }
                         }
