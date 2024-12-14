@@ -52,12 +52,12 @@ var jTDAL;
             let openedBracket = 0;
             paths: {
                 const paths = pathExpression.split('|');
-                const countFirstLevel = paths.length;
-                for (let indexFirstLevel = 0; indexFirstLevel < countFirstLevel; ++indexFirstLevel) {
-                    if (0 != indexFirstLevel) {
+                const cFL = paths.length;
+                for (let iFL = 0; iFL < cFL; ++iFL) {
+                    if (0 != iFL) {
                         returnValue += '||';
                     }
-                    let currentPath = paths[indexFirstLevel].replace(/^\s+/, '');
+                    let currentPath = paths[iFL].replace(/^\s+/, '');
                     if (currentPath.startsWith('STRING:')) {
                         returnValue += '(' + ParseString(currentPath.substring(7)) + ')';
                         break paths;
@@ -112,7 +112,7 @@ var jTDAL;
                     }
                 }
             }
-            for (let indexFirstLevel = 0; indexFirstLevel < openedBracket; indexFirstLevel++) {
+            for (let iFL = 0; iFL < openedBracket; iFL++) {
                 returnValue += ')';
             }
         }
