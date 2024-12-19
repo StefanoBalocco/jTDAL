@@ -198,10 +198,12 @@ namespace jTDAL {
 					} else {
 						current[ 0 ] += '+(';
 						// current i = object
+						current[ 0 ] += '((';
 						current[ 0 ] += 'a(' + tmpValue + ')&&';
 						current[ 0 ] += '(!Array.isArray(t[t[0]])||(t[t[0]]=Object.assign({},t[t[0]])))&&';
+						current[ 0 ] += '("object"===typeof t[t[0]]&&null!==t[t[0]]&&Object.keys(t[t[0]]).length)';
 						// current i = index for object loop ( i+=1 )
-						current[ 0 ] += '("object"===typeof t[t[0]]&&null!==t[t[0]]&&0<Object.keys(t[t[0]++]).length)&&(t[t[0]++]=1)';
+						current[ 0 ] += ')?((t[++t[0]]=1)&&t[0]++):((t[0]+=2)&&false))';
 						current[ 0 ] += '?';
 						current[ 0 ] += 'Object.keys(t[t[0]-2]).reduce((o,e)=>{';
 						current[ 0 ] += 'r["' + tmpTDALrules[ 1 ] + '"]=t[t[0]-2][e];';
