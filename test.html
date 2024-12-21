@@ -107,6 +107,24 @@
 		</div>
 	</div>
 	<div class="card">
+		<h4 class="section">Show if truthy is FALSE</h4>
+		<div class="section">
+			<code>&lt;div data-tdal-content="truthy | STRING:After check">Default text&lt;/div&gt;</code>
+		</div>
+		<div class="section">
+			<div data-tdal-content="truthy | STRING:After check">Default text</div>
+		</div>
+	</div>
+	<div class="card">
+		<h4 class="section">Show if falsey is FALSE</h4>
+		<div class="section">
+			<code>&lt;div data-tdal-content="falsey | STRING:After check">Default text&lt;/div&gt;</code>
+		</div>
+		<div class="section">
+			<div data-tdal-content="falsey | STRING:After check">Default text</div>
+		</div>
+	</div>
+	<div class="card">
 		<h4 class="section">Show if URL is missing or exists (using conditional STRING)</h4>
 		<div class="section">
 			<code>&lt;div data-tdal-content="STRING:{?url}URL exists: {url}{?url}{?!url}URL is missing: {url}{?!url}"&gt;URL is missing&lt;/div&gt;</code>
@@ -236,7 +254,11 @@ const template = [
 	jTDAL.CompileToFunction( document.getElementById( 'template-tdal-attributes' ).innerHTML ),
 	jTDAL.CompileToFunction( document.getElementById( 'template-tdal-repeat' ).innerHTML )
 ];
-let params = { 'url': 'https://picsum.photos/id/1025/480/320' };
+let params = {
+	truthy: true,
+	falsey: false,
+	'url': 'https://picsum.photos/id/1025/480/320'
+};
 let a = template[ 0 ]( params );
 document.getElementById( 'results-tdal-condition' ).innerHTML = template[ 0 ]( params );
 document.getElementById( 'results-tdal-attributes' ).innerHTML = template[ 2 ]( params );

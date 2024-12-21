@@ -1,23 +1,25 @@
 'use strict';
 namespace jTDAL {
-	const regexpPatternPath: string = '(?:[\\w-\\/]*[\\w](?:[\\s]*\\|[\\s]*[\\w-\\/]*[\\w])*)';
-	const regexpPatternPathAllowedBoolean: string = '(?:(?:!)?[\\w-\\/]*[\\w](?:[\\s]*\\|[\\s]*[\\w-\\/]*[\\w])*)';
+	const regexpPatternPath: string = '(?:[\\w\\-\\/]*[\\w](?:[\\s]*\\|[\\s]*[\\w\\-\\/]*[\\w])*)';
+	const regexpPatternString: string = 'STRING:(?:[^;](?:(?!<=;);)?)+';
+	const regexpPatternPathAllowedBoolean: string = '(?:(?:!)?[\\w\\-\\/]*[\\w](?:[\\s]*\\|[\\s]*[\\w\\-\\/]*[\\w])*)';
 	//const regexpPatternExpression: string = '(STRING:[^;]+|' + regexpPatternPathAllowedBoolean + ')';
-	const regexpPatternExpressionAllowedBoolean: string = '(STRING:(?:[^;](?:(?!<=;);)?)+|' + regexpPatternPathAllowedBoolean + ')';
+	//const regexpPatternExpressionAllowedBoolean: string = '(' + regexpPatternString + '|' + regexpPatternPathAllowedBoolean + ')';
+	const regexpPatternExpressionAllowedBoolean: string = '(?:' + regexpPatternString + '|(?:' + regexpPatternPathAllowedBoolean + ')(?:[\\s*]\\|[\\s*]' + regexpPatternString + ')?)';
 	const keywords: string[] = [ 'condition', 'repeat', 'content', 'replace', 'attributes', 'omittag' ];
 	const regexp: { [ key: string ]: RegExp } = {
 		'tagWithTDAL': new RegExp( '<((?:\\w+:)?\\w+)(\\s+[^<>]+?)??\\s+data-tdal-(?:' + keywords.join( '|' ) +
 															 ')=([\'"])(.*?)\\3(\\s+[^<>]+?)??\\s*(\/)?>', 'i' ),
 		'tagWithAttribute': new RegExp( '<((?:\w+:)?\w+)(\s+[^<>]+?)??\s+%s=([\'"])(.*?)\\3(\s+[^<>]+?)??\s*(\/)?>', 'i' ),
-		'tagAttributes': new RegExp( '(?<=\\s)((?:[\\w-]+\:)?[\\w-]+)=(?:([\'"])(.*?)\\2|([^>\\s\'"]+))', 'gi' ),
+		'tagAttributes': new RegExp( '(?<=\\s)((?:[\\w\\-]+\:)?[\\w\\-]+)=(?:([\'"])(.*?)\\2|([^>\\s\'"]+))', 'gi' ),
 		'pathString': new RegExp( '(?:{(' + regexpPatternPath + ')}|{\\?(' + regexpPatternPathAllowedBoolean + ')}(.*?){\\?\\2})' ),
 		'pathInString': new RegExp( '{(' + regexpPatternPath + ')}', 'g' ),
 		'conditionInString': new RegExp( '{\\?(' + regexpPatternPathAllowedBoolean + ')}(.*?){\\?\\1}', 'g' ),
 		'condition': new RegExp( '^[\\s]*(' + regexpPatternExpressionAllowedBoolean + ')[\\s]*$' ),
-		'repeat': new RegExp( '^[\\s]*([\\w-]+?)[\\s]+(' + regexpPatternPath + ')[\\s]*$' ),
+		'repeat': new RegExp( '^[\\s]*([\\w\\-]+?)[\\s]+(' + regexpPatternPath + ')[\\s]*$' ),
 		'content': new RegExp( '^[\\s]*(?:(text|structure)[\\s]+)?(' + regexpPatternExpressionAllowedBoolean + ')[\\s]*$' ),
-		'attributes': new RegExp( '[\\s]*(?:(?:([\\w-]+?)[\\s]+(' + regexpPatternExpressionAllowedBoolean + ')[\\s]*)(?:;;[\\s]*|$))', 'g' ),
-		'attributesTDAL': new RegExp( '\\s*(data-tdal-[\\w-]+)=(?:([\'"])(.*?)\\2|([^>\\s\'"]+))', 'gi' )
+		'attributes': new RegExp( '[\\s]*(?:(?:([\\w\\-]+?)[\\s]+(' + regexpPatternExpressionAllowedBoolean + ')[\\s]*)(?:;;[\\s]*|$))', 'g' ),
+		'attributesTDAL': new RegExp( '\\s*(data-tdal-[\\w\\-]+)=(?:([\'"])(.*?)\\2|([^>\\s\'"]+))', 'gi' )
 	};
 	// {\?((?:[\w-\/]*[\w](?:[\s]*\|[\s]*[\w-\/]*[\w])*))}(.*?){\?(?:[\w-\/]*[\w](?:[\s]*\|[\s]*[\w-\/]*[\w])*)}
 	const HTML5VoidElements: string[] = [ 'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr' ];
@@ -107,8 +109,8 @@ namespace jTDAL {
 								}
 								default: {
 									// not encapsulate checks between parenthesis because not checks are connected with &&
-									if( boolPath ){
-										returnValue += ( not?'!(':'') + '(a(c(r,"' + path.join( '/' ) + '"))&&false!==b(t[t[0]]))||(a(c(d,"' + path.join( '/' ) + '"))&&false!==b(t[t[0]]))' + ( not?')':'');
+									if( boolPath ) {
+										returnValue += ( not ? '!(' : '' ) + '(a(c(r,"' + path.join( '/' ) + '"))&&false!==b(t[t[0]]))||(a(c(d,"' + path.join( '/' ) + '"))&&false!==b(t[t[0]]))' + ( not ? ')' : '' );
 									} else {
 										returnValue += '((a(c(r,"' + path.join( '/' ) + '"))||a(c(d,"' + path.join( '/' ) + '")))?t[t[0]]:false)';
 									}

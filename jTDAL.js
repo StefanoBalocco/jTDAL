@@ -1,23 +1,24 @@
 'use strict';
 var jTDAL;
 (function (jTDAL) {
-    const regexpPatternPath = '(?:[\\w-\\/]*[\\w](?:[\\s]*\\|[\\s]*[\\w-\\/]*[\\w])*)';
-    const regexpPatternPathAllowedBoolean = '(?:(?:!)?[\\w-\\/]*[\\w](?:[\\s]*\\|[\\s]*[\\w-\\/]*[\\w])*)';
-    const regexpPatternExpressionAllowedBoolean = '(STRING:(?:[^;](?:(?!<=;);)?)+|' + regexpPatternPathAllowedBoolean + ')';
+    const regexpPatternPath = '(?:[\\w\\-\\/]*[\\w](?:[\\s]*\\|[\\s]*[\\w\\-\\/]*[\\w])*)';
+    const regexpPatternString = 'STRING:(?:[^;](?:(?!<=;);)?)+';
+    const regexpPatternPathAllowedBoolean = '(?:(?:!)?[\\w\\-\\/]*[\\w](?:[\\s]*\\|[\\s]*[\\w\\-\\/]*[\\w])*)';
+    const regexpPatternExpressionAllowedBoolean = '(?:' + regexpPatternString + '|(?:' + regexpPatternPathAllowedBoolean + ')(?:[\\s*]\\|[\\s*]' + regexpPatternString + ')?)';
     const keywords = ['condition', 'repeat', 'content', 'replace', 'attributes', 'omittag'];
     const regexp = {
         'tagWithTDAL': new RegExp('<((?:\\w+:)?\\w+)(\\s+[^<>]+?)??\\s+data-tdal-(?:' + keywords.join('|') +
             ')=([\'"])(.*?)\\3(\\s+[^<>]+?)??\\s*(\/)?>', 'i'),
         'tagWithAttribute': new RegExp('<((?:\w+:)?\w+)(\s+[^<>]+?)??\s+%s=([\'"])(.*?)\\3(\s+[^<>]+?)??\s*(\/)?>', 'i'),
-        'tagAttributes': new RegExp('(?<=\\s)((?:[\\w-]+\:)?[\\w-]+)=(?:([\'"])(.*?)\\2|([^>\\s\'"]+))', 'gi'),
+        'tagAttributes': new RegExp('(?<=\\s)((?:[\\w\\-]+\:)?[\\w\\-]+)=(?:([\'"])(.*?)\\2|([^>\\s\'"]+))', 'gi'),
         'pathString': new RegExp('(?:{(' + regexpPatternPath + ')}|{\\?(' + regexpPatternPathAllowedBoolean + ')}(.*?){\\?\\2})'),
         'pathInString': new RegExp('{(' + regexpPatternPath + ')}', 'g'),
         'conditionInString': new RegExp('{\\?(' + regexpPatternPathAllowedBoolean + ')}(.*?){\\?\\1}', 'g'),
         'condition': new RegExp('^[\\s]*(' + regexpPatternExpressionAllowedBoolean + ')[\\s]*$'),
-        'repeat': new RegExp('^[\\s]*([\\w-]+?)[\\s]+(' + regexpPatternPath + ')[\\s]*$'),
+        'repeat': new RegExp('^[\\s]*([\\w\\-]+?)[\\s]+(' + regexpPatternPath + ')[\\s]*$'),
         'content': new RegExp('^[\\s]*(?:(text|structure)[\\s]+)?(' + regexpPatternExpressionAllowedBoolean + ')[\\s]*$'),
-        'attributes': new RegExp('[\\s]*(?:(?:([\\w-]+?)[\\s]+(' + regexpPatternExpressionAllowedBoolean + ')[\\s]*)(?:;;[\\s]*|$))', 'g'),
-        'attributesTDAL': new RegExp('\\s*(data-tdal-[\\w-]+)=(?:([\'"])(.*?)\\2|([^>\\s\'"]+))', 'gi')
+        'attributes': new RegExp('[\\s]*(?:(?:([\\w\\-]+?)[\\s]+(' + regexpPatternExpressionAllowedBoolean + ')[\\s]*)(?:;;[\\s]*|$))', 'g'),
+        'attributesTDAL': new RegExp('\\s*(data-tdal-[\\w\\-]+)=(?:([\'"])(.*?)\\2|([^>\\s\'"]+))', 'gi')
     };
     const HTML5VoidElements = ['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr'];
     function ParseString(stringExpression) {
