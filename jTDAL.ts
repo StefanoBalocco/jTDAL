@@ -10,7 +10,7 @@ namespace jTDAL {
 	const regexp: { [ key: string ]: RegExp } = {
 		'tagWithTDAL': new RegExp( '<((?:\\w+:)?\\w+)(\\s+[^<>]+?)??\\s+data-tdal-(?:' + keywords.join( '|' ) +
 															 ')=([\'"])(.*?)\\3(\\s+[^<>]+?)??\\s*(\/)?>', 'i' ),
-		'tagWithAttribute': new RegExp( '<((?:\w+:)?\w+)(\s+[^<>]+?)??\s+%s=([\'"])(.*?)\\3(\s+[^<>]+?)??\s*(\/)?>', 'i' ),
+		'tagWithAttribute': new RegExp( '<((?:\\w+:)?\\w+)(\\s+[^<>]+?)??\\s+%s=([\'"])(.*?)\\3(\\s+[^<>]+?)??\\s*(\/)?>', 'i' ),
 		'tagAttributes': new RegExp( '(?<=\\s)((?:[\\w\\-]+\:)?[\\w\\-]+)=(?:([\'"])(.*?)\\2|([^>\\s\'"]+))', 'gi' ),
 		'pathString': new RegExp( '(?:{(' + regexpPatternPath + ')}|{\\?(' + regexpPatternPathAllowedBoolean + ')}(.*?){\\?\\2})' ),
 		'pathInString': new RegExp( '{(' + regexpPatternPath + ')}', 'g' ),
