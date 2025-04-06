@@ -16,12 +16,15 @@ You can use jTDAL directly in the browser or as an npm package.
 
 ```html
 <script type="module">
-  import jTDAL from 'https://unpkg.com/jtdal/jTDAL.min.js';
-  const template = `<div data-tdal-content="foo"></div>`;
-  const t = jTDAL.CompileToFunction(template);
-  const data = { foo: "Hello, World!" };
-  const result = t(data);
-  document.getElementById( 'result' ).innerHTML = result;
+    import jTDAL from 'https://unpkg.com/jtdal/jTDAL.min.js';
+	const macros = [ ];
+	macros.push( [ 'bar', '<div data-tdal-replace="foo"></div>' ] );
+    const templateEngine = new jTDAL( macros );
+    const template = `<div data-tdal-content="MACRO:bar"></div>`;
+    const t = templateEngine.CompileToFunction(template);
+    const data = { foo: "Hello, World!" };
+    const result = t(data);
+    document.getElementById( 'result' ).innerHTML = result;
 </script>
 ```
 
@@ -38,8 +41,11 @@ Then use it in your project:
 ```javascript
 import jTDAL from 'jtdal';
 
-const template = `<div data-tdal-content="foo"></div>`;
-const t = jTDAL.CompileToFunction(template);
+const macros = [ ];
+const templateEngine = new jTDAL( macros );
+templateEngine.MacroAdd( [ 'bar', '<div data-tdal-replace="foo"></div>' ] );
+const template = `<div data-tdal-content="MACRO:bar"></div>`;
+const t = templateEngine.CompileToFunction(template);
 const data = { foo: "Hello, World!" };
 const result = t(data);
 console.log(result);
@@ -53,9 +59,9 @@ The engine supports the following `data-` attributes. These attributes are resol
 
 2. `data-tdal-repeat="variable-name path-expression"`
 
-3. `data-tdal-content="path-expression-string-allowed`
+3. `data-tdal-content="path-expression-string/macro-allowed`
 
-4. `data-tdal-replace="path-expression-string-allowed"`
+4. `data-tdal-replace="path-expression-string/macro-allowed"`
 
 5. `data-tdal-attributes="attribute path-expression-string-allowed[;;attribute path-expression-string-allowed]"`
 
@@ -69,10 +75,6 @@ In the documentation below, the attributes are described in the following order 
 4. Replace
 5. Condition
 6. Repeat
-
-### Planned Features
-
-Future updates will include the jTDAL equivalent of TAL's METAL (partials in Mustache).
 
 ### Path Expressions
 
@@ -97,12 +99,20 @@ The first existing and truthy path is used as the result. If no paths match, `fa
 
 - **Booleans**: Prefix with `!` for negation.
 - **Strings**: Prepend `STRING:` to define static strings or templates with placeholders.
-- **Conditions**: Use `{?condition}` or `{?!condition}` for conditional inclusions within strings.
 
 Special keywords:
 
 - `TRUE`: Halts parsing and returns `true`.
 - `FALSE`: Halts parsing and returns `false`.
+
+### Strings
+A string is a path prefixed with `STRING:`. It can contain placeholders in the form {path-expression|another-path|last-path-but-not-a-string}. The placeholders are replaced with the value of the path expression.
+In strings is possible to use `{?condition}` or `{?!condition}` for conditional inclusions.
+Each {?condition} must be closed with a {?/condition}. Same for {?!condition}.
+
+```code
+STRING:This is a string with a {foo}{?bar} and a {bar}{/bar} placeholder.
+```
 
 ### Attribute Details
 
@@ -126,17 +136,21 @@ Adds or modifies multiple attributes based on the path expression. Each attribut
 
 ```html
 <span data-tdal-content="path-expression">Something</span>
+<span data-tdal-content="structure path-expression-that-return-html-code">Something</span>
 ```
 
 Replaces the tag's content with the result of the path expression. If the expression is false, the content is removed.
+You may prepend the path-expression with "structure". If you do, the value is printed as html rather than text.
 
 #### Replace
 
 ```html
 <div data-tdal-replace="path-expression">Replaced content</div>
+<div data-tdal-replace="structure path-expression-that-return-html-code">Replaced content</div>
 ```
 
 Replaces the tag and its contents with the result of the path expression. If the expression is false, the tag and its contents are removed.
+You may prepend the path-expression with "structure". If you do, the value is printed as html rather than text.
 
 #### Condition
 
@@ -162,3 +176,33 @@ Repeats the tag for each element in an array or object. While iterating, a `REPE
 - `first`, `last`: Boolean flags for the first/last element.
 - `length`: Total items in the array or keys in the object.
 
+## Macros
+
+jTDAL support macros (equivalent of TAL's METAL or partials in Mustache) in content and replace.
+
+First you need to add your macro to the template:
+
+```javascript
+const macro = `Hello, <span data-tdal-replace="name|STRING:World"></span>!`;
+jTDAL.MacroAdd( "helloworld", macro );
+```
+
+Then you can call it from the template
+
+#### Content
+
+```html
+<span data-tdal-content="MACRO:helloworld">Something</span>
+<span data-tdal-content="structure MACRO:helloworld">Something</span>
+```
+
+Replaces the tag's content with the template foo
+
+#### Replace
+
+```html
+<div data-tdal-replace="MACRO:helloworld">Replaced content</div>
+<div data-tdal-replace="structure MACRO:helloworld">Replaced content</div>
+```
+
+Replaces the tag with the template foo

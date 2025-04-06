@@ -67,6 +67,25 @@
 			<div class="row" id="results-tdal-repeat">
 			</div>
 		</div>
+		<div class="col-sm">
+			<h1>Macro test</h1>
+			<code>Data:
+				{
+				'items':
+				[
+				10,
+				9,
+				8,
+				7,
+				6,
+				5
+				]
+				}
+
+			</code>
+			<div class="row" id="results-tdal-macro">
+			</div>
+		</div>
 	</div>
 </div>
 <script id="template-tdal-condition" type="text/html">
@@ -244,15 +263,31 @@
 		<img class="section media" src="https://picsum.photos/id/1025/480/320?blur=10" data-tdal-attributes="src STRING:https://picsum.photos/id/{itema}/480/320" />
 	</div>
 </script>
-<script type="module">
+	<script id="macro-tdal-card" type="text/html">
+		<div class="card">
+			<h4 class="section" data-tdal-content="STRING:Using url and item for src (blur value: {item})">Using url and item for src</h4>
+			<div class="section">
+				<code>&lt;img src="https://picsum.photos/id/1025/480/320?blur=10" data-tdal-attributes="src STRING:{url}?blur={item}" /&gt;</code>
+			</div>
+			<img class="section media" src="https://picsum.photos/id/1025/480/320?blur=10" data-tdal-attributes="src STRING:{url}?blur={item}" />
+		</div>
+	</script>
+	<script id="template-tdal-macro" type="text/html">
+		<div data-tdal-content="structure MACRO:card" style="background-color: lightpink"></div>
+		<div data-tdal-replace="structure MACRO:card" style="background-color: hotpink"></div>
+		<div data-tdal-repeat="item items" data-tdal-replace="structure MACRO:card" style="background-color: deeppink"></div>
+	</script>
+	<script type="module">
 import jTDAL from 'https://unpkg.com/jtdal/jTDAL.min.js';
 
-const htmlTemplate = document.getElementById( 'template-tdal-condition' ).innerHTML
+const templateEngine = new jTDAL( [ [ 'card', document.getElementById( 'macro-tdal-card' ).innerHTML ] ] );
+
 const template = [
-	jTDAL.CompileToFunction( document.getElementById( 'template-tdal-condition' ).innerHTML ),
-	jTDAL.CompileToFunction( document.getElementById( 'template-tdal-condition-in-repeat' ).innerHTML ),
-	jTDAL.CompileToFunction( document.getElementById( 'template-tdal-attributes' ).innerHTML ),
-	jTDAL.CompileToFunction( document.getElementById( 'template-tdal-repeat' ).innerHTML )
+	templateEngine.CompileToFunction( document.getElementById( 'template-tdal-condition' ).innerHTML ),
+	templateEngine.CompileToFunction( document.getElementById( 'template-tdal-condition-in-repeat' ).innerHTML ),
+	templateEngine.CompileToFunction( document.getElementById( 'template-tdal-attributes' ).innerHTML ),
+	templateEngine.CompileToFunction( document.getElementById( 'template-tdal-repeat' ).innerHTML ),
+	templateEngine.CompileToFunction( document.getElementById( 'template-tdal-macro' ).innerHTML )
 ];
 let params = {
 	truthy: true,
@@ -273,6 +308,8 @@ params = {
 document.getElementById( 'results-tdal-condition-in-repeat' ).innerHTML = template[ 1 ]( params );
 params = { 'items': [ 1025, 1062, 244, 40, 495, 582 ] };
 document.getElementById( 'results-tdal-repeat' ).innerHTML = template[ 3 ]( params );
+params = { 'url': 'https://picsum.photos/id/1025/480/320', 'items': [ 10, 9, 8, 7, 6, 5 ] };
+document.getElementById( 'results-tdal-macro' ).innerHTML = template[ 4 ]( params );
 </script>
 </body>
 </html>

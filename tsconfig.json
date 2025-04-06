@@ -16,8 +16,7 @@
     "noImplicitReturns": true,
     "allowSyntheticDefaultImports": true
   },
-  "files":
-  [
+  "files": [
     "jTDAL.ts"
   ]
 }
