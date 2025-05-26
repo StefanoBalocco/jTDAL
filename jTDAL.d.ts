@@ -1,3 +1,4 @@
+type TemplateEngine = (data: any) => string;
 export default class jTDAL {
     private static readonly _keywords;
     private static readonly _regexpPatternPath;
@@ -22,6 +23,7 @@ export default class jTDAL {
     MacroAdd(macroName: string, template: string, trim?: boolean, strip?: boolean): boolean;
     constructor(macros?: [string, string][], trim?: boolean, strip?: boolean);
     private _Compile;
-    CompileToFunction(template: string, trim?: boolean, strip?: boolean): Function;
+    CompileToFunction(template: string, trim?: boolean, strip?: boolean): TemplateEngine;
     CompileToString(template: string, trim?: boolean, strip?: boolean): string;
 }
+export {};
