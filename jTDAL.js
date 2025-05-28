@@ -126,7 +126,7 @@ export default class jTDAL {
     }
     _Parse(template) {
         let returnValue = '';
-        let tmpTDALTags = null;
+        let tmpTDALTags;
         const attributesPrefix = 'data-tdal-';
         while (null !== (tmpTDALTags = jTDAL._regexpTagWithTDAL.exec(template))) {
             if (0 < tmpTDALTags['index']) {
@@ -134,7 +134,7 @@ export default class jTDAL {
             }
             template = template.substring(tmpTDALTags['index'] + tmpTDALTags[0].length);
             let selfClosed = !!tmpTDALTags[6] || jTDAL._HTML5VoidElements.includes(tmpTDALTags[1].toLowerCase());
-            let current = ['', tmpTDALTags[0], '', '', '', '', '', ''];
+            const current = ['', tmpTDALTags[0], '', '', '', '', '', ''];
             const attributes = {};
             const matches = tmpTDALTags[0].matchAll(jTDAL._regexpTagAttributes);
             for (const match of matches) {
@@ -167,9 +167,11 @@ export default class jTDAL {
                 }
             }
             tdal: {
+                let tmpMatch;
+                let tmpValue;
                 let attribute = attributesPrefix + jTDAL._keywords[0];
                 if (attributes[attribute] && (jTDAL._regexpCondition.exec(attributes[attribute][3]))) {
-                    let tmpValue = jTDAL._ParsePath(attributes[attribute][3], true, this._macros);
+                    tmpValue = jTDAL._ParsePath(attributes[attribute][3], true, this._macros);
                     if ('false' === tmpValue) {
                         break tdal;
                     }
@@ -178,10 +180,9 @@ export default class jTDAL {
                         current[7] = ':"")' + current[7];
                     }
                 }
-                let tmpTDALrules;
                 attribute = attributesPrefix + jTDAL._keywords[1];
-                if (attributes[attribute] && (tmpTDALrules = jTDAL._regexpRepeat.exec(attributes[attribute][3]))) {
-                    let tmpValue = jTDAL._ParsePath(tmpTDALrules[2], false, this._macros);
+                if (attributes[attribute] && (tmpMatch = jTDAL._regexpRepeat.exec(attributes[attribute][3]))) {
+                    tmpValue = jTDAL._ParsePath(tmpMatch[2], false, this._macros);
                     if (('false' == tmpValue) || ('""' == tmpValue) || ('true' == tmpValue)) {
                         break tdal;
                     }
@@ -194,29 +195,29 @@ export default class jTDAL {
                         current[0] += ')?((t[++t[0]]=1)&&t[0]++):((t[0]+=2)&&false))';
                         current[0] += '?';
                         current[0] += 'Object.keys(t[t[0]-2]).reduce((o,e)=>{';
-                        current[0] += 'r["' + tmpTDALrules[1] + '"]=t[t[0]-2][e];';
-                        current[0] += 'r["REPEAT"]["' + tmpTDALrules[1] + '"]={};';
-                        current[0] += 'r["REPEAT"]["' + tmpTDALrules[1] + '"]["index"]=e;';
-                        current[0] += 'r["REPEAT"]["' + tmpTDALrules[1] + '"]["number"]=t[t[0]-1]++;';
-                        current[0] += 'r["REPEAT"]["' + tmpTDALrules[1] + '"]["even"]=0==(r["REPEAT"]["' + tmpTDALrules[1] + '"]["number"]%2);';
-                        current[0] += 'r["REPEAT"]["' + tmpTDALrules[1] + '"]["odd"]=1==(r["REPEAT"]["' + tmpTDALrules[1] + '"]["number"]%2);';
-                        current[0] += 'r["REPEAT"]["' + tmpTDALrules[1] + '"]["first"]=1==r["REPEAT"]["' + tmpTDALrules[1] + '"]["number"];';
-                        current[0] += 'r["REPEAT"]["' + tmpTDALrules[1] + '"]["length"]=Object.keys(t[t[0]-2]);';
-                        current[0] += 'r["REPEAT"]["' + tmpTDALrules[1] + '"]["last"]=r["REPEAT"]["' + tmpTDALrules[1] + '"]["length"]==r["REPEAT"]["' +
-                            tmpTDALrules[1] + '"]["number"];';
+                        current[0] += 'r["' + tmpMatch[1] + '"]=t[t[0]-2][e];';
+                        current[0] += 'r["REPEAT"]["' + tmpMatch[1] + '"]={};';
+                        current[0] += 'r["REPEAT"]["' + tmpMatch[1] + '"]["index"]=e;';
+                        current[0] += 'r["REPEAT"]["' + tmpMatch[1] + '"]["number"]=t[t[0]-1]++;';
+                        current[0] += 'r["REPEAT"]["' + tmpMatch[1] + '"]["even"]=0==(r["REPEAT"]["' + tmpMatch[1] + '"]["number"]%2);';
+                        current[0] += 'r["REPEAT"]["' + tmpMatch[1] + '"]["odd"]=1==(r["REPEAT"]["' + tmpMatch[1] + '"]["number"]%2);';
+                        current[0] += 'r["REPEAT"]["' + tmpMatch[1] + '"]["first"]=1==r["REPEAT"]["' + tmpMatch[1] + '"]["number"];';
+                        current[0] += 'r["REPEAT"]["' + tmpMatch[1] + '"]["length"]=Object.keys(t[t[0]-2]);';
+                        current[0] += 'r["REPEAT"]["' + tmpMatch[1] + '"]["last"]=r["REPEAT"]["' + tmpMatch[1] + '"]["length"]==r["REPEAT"]["' +
+                            tmpMatch[1] + '"]["number"];';
                         current[0] += 'return o';
-                        current[7] = ';},""):"")+((t[0]-=2)&&(delete r["REPEAT"]["' + tmpTDALrules[1] + '"])&&delete(r["' + tmpTDALrules[1] + '"])?"":"")' + current[7];
+                        current[7] = ';},""):"")+((t[0]-=2)&&(delete r["REPEAT"]["' + tmpMatch[1] + '"])&&delete(r["' + tmpMatch[1] + '"])?"":"")' + current[7];
                     }
                 }
                 attribute = attributesPrefix + jTDAL._keywords[2];
-                if (attributes[attribute] && (tmpTDALrules = jTDAL._regexpContent.exec(attributes[attribute][3]))) {
-                    let tmpValue = jTDAL._ParsePath(tmpTDALrules[2], false, this._macros);
+                if (attributes[attribute] && (tmpMatch = jTDAL._regexpContent.exec(attributes[attribute][3]))) {
+                    tmpValue = jTDAL._ParsePath(tmpMatch[2], false, this._macros);
                     if ('false' == tmpValue) {
                         current[4] = '';
                     }
                     else if ('true' != tmpValue) {
                         let encoding = ['', ''];
-                        if ('structure' != tmpTDALrules[1]) {
+                        if ('structure' != tmpMatch[1]) {
                             encoding[0] = 'String(';
                             encoding[1] = ').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;")';
                         }
@@ -226,8 +227,8 @@ export default class jTDAL {
                 }
                 else {
                     attribute = attributesPrefix + jTDAL._keywords[3];
-                    if (attributes[attribute] && (tmpTDALrules = jTDAL._regexpContent.exec(attributes[attribute][3]))) {
-                        let tmpValue = jTDAL._ParsePath(tmpTDALrules[2], false, this._macros);
+                    if (attributes[attribute] && (tmpMatch = jTDAL._regexpContent.exec(attributes[attribute][3]))) {
+                        tmpValue = jTDAL._ParsePath(tmpMatch[2], false, this._macros);
                         if ('false' == tmpValue) {
                             current[1] = '';
                             current[4] = '';
@@ -235,7 +236,7 @@ export default class jTDAL {
                         }
                         else if ('true' != tmpValue) {
                             let encoding = ['', ''];
-                            if ('structure' != tmpTDALrules[1]) {
+                            if ('structure' != tmpMatch[1]) {
                                 encoding[0] = 'String(';
                                 encoding[1] = ').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;")';
                             }
@@ -247,18 +248,18 @@ export default class jTDAL {
                 attribute = attributesPrefix + jTDAL._keywords[4];
                 if (attributes[attribute]) {
                     const matches = attributes[attribute][3].matchAll(jTDAL._regexpAttributes);
-                    for (tmpTDALrules of matches) {
-                        const tmpValue = jTDAL._ParsePath(tmpTDALrules[2], false, this._macros);
+                    for (tmpMatch of matches) {
+                        tmpValue = jTDAL._ParsePath(tmpMatch[2], false, this._macros);
                         if ('false' === tmpValue) {
-                            if (undefined !== attributes[tmpTDALrules[1]]) {
-                                current[1] = current[1].replace(new RegExp('\\s*\\b' + tmpTDALrules[1] + '\\b(?:=([\'"]).*?\\1)?(?=\\s|\\/?>)'), '');
+                            if (undefined !== attributes[tmpMatch[1]]) {
+                                current[1] = current[1].replace(new RegExp('\\s*\\b' + tmpMatch[1] + '\\b(?:=([\'"]).*?\\1)?(?=\\s|\\/?>)'), '');
                             }
                         }
                         else if ('true' !== tmpValue) {
-                            current[2] += '+(a(' + tmpValue + ')&&("string"===typeof t[t[0]]||("number"===typeof t[t[0]]&&!isNaN(t[t[0]])))?" ' + tmpTDALrules[1] + '=\\""+t[t[0]]+"\\"":(true!==t[t[0]]?"":"' + tmpTDALrules[1] + '"';
-                            if (undefined !== attributes[tmpTDALrules[1]]) {
-                                current[1] = current[1].replace(new RegExp('\\s*\\b' + tmpTDALrules[1] + '\\b(?:=([\'"]).*?\\1)?(?=\\s|\\/?>)'), '');
-                                current[2] += (((undefined !== attributes[tmpTDALrules[1]][3]) && ('' != attributes[tmpTDALrules[1]][3])) ? '+"="+' + JSON.stringify(String(attributes[tmpTDALrules[1]][2] + attributes[tmpTDALrules[1]][3] + attributes[tmpTDALrules[1]][2])) : "");
+                            current[2] += '+(a(' + tmpValue + ')&&("string"===typeof t[t[0]]||("number"===typeof t[t[0]]&&!isNaN(t[t[0]])))?" ' + tmpMatch[1] + '=\\""+t[t[0]]+"\\"":(true!==t[t[0]]?"":"' + tmpMatch[1] + '"';
+                            if (undefined !== attributes[tmpMatch[1]]) {
+                                current[1] = current[1].replace(new RegExp('\\s*\\b' + tmpMatch[1] + '\\b(?:=([\'"]).*?\\1)?(?=\\s|\\/?>)'), '');
+                                current[2] += (((undefined !== attributes[tmpMatch[1]][3]) && ('' != attributes[tmpMatch[1]][3])) ? '+"="+' + JSON.stringify(String(attributes[tmpMatch[1]][2] + attributes[tmpMatch[1]][3] + attributes[tmpMatch[1]][2])) : "");
                             }
                             current[2] += '))';
                         }
@@ -266,7 +267,7 @@ export default class jTDAL {
                 }
                 attribute = attributesPrefix + jTDAL._keywords[5];
                 if (attributes[attribute] && (jTDAL._regexpCondition.exec(attributes[attribute][3]))) {
-                    let tmpValue = jTDAL._ParsePath(attributes[attribute][3], true, this._macros);
+                    tmpValue = jTDAL._ParsePath(attributes[attribute][3], true, this._macros);
                     if ('true' == tmpValue) {
                         current[1] = '';
                         current[6] = '';
@@ -309,6 +310,7 @@ export default class jTDAL {
         }
     }
     _Compile(template, trim = true, strip = true) {
+        const tmpArray = ['', ''];
         let tmpValue = this._Parse(strip ? template.replace(/<!--.*?-->/sg, '') : template);
         let returnValue = 'const r={"REPEAT":{}}';
         returnValue += ',t=[1]';
@@ -328,7 +330,6 @@ export default class jTDAL {
         returnValue += 'return "object"===typeof v?null!==v&&0<Object.keys(v).length:(Array.isArray(v)?0<v.length:void 0!==v&&false!==v&&""!==v)';
         returnValue += '}';
         returnValue += ';';
-        const tmpArray = ['', ''];
         if (trim) {
             tmpArray[0] = '(';
             tmpArray[1] = ').trim()';
