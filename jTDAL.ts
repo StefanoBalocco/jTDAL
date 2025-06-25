@@ -18,7 +18,7 @@ export default class jTDAL {
 	private static readonly _regexpCondition: RegExp = new RegExp( '^[\\s]*(' + jTDAL._regexpPatternExpressionAllowedBoolean + ')[\\s]*$' );
 	private static readonly _regexpRepeat: RegExp = new RegExp( '^[\\s]*([\\w\\-]+?)[\\s]+(' + jTDAL._regexpPatternPath + ')[\\s]*$' );
 	private static readonly _regexpContent: RegExp = new RegExp( '^[\\s]*(?:(structure)[\\s]+)?(' + jTDAL._regexpPatternExpressionAllowedBooleanMacro + ')[\\s]*$' );
-	private static readonly _regexpAttributes: RegExp = new RegExp( '[\\s]*(?:(?:([\\w\\-]+?)[\\s]+(' + jTDAL._regexpPatternExpressionAllowedBoolean + ')[\\s]*)(?:;;[\\s]*|$))', 'g' );
+	private static readonly _regexpAttributes: RegExp = new RegExp( '[\\s]*(?:(?:([\\w\\-]+)(\\??)[\\s]+(' + jTDAL._regexpPatternExpressionAllowedBoolean + ')[\\s]*)(?:;;[\\s]*|$))', 'g' );
 	private static readonly _regexpAttributesTDAL: RegExp = /\s*(data-tdal-[\w-]+)=(?:(['"])(.*?)\2|([^>\s'"]+))/gi;
 	private static readonly _HTML5VoidElements: string[] = [ 'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr' ];
 	private _macros: Record<string, string> = {};
@@ -208,26 +208,24 @@ export default class jTDAL {
 						break tdal;
 					} else {
 						current[ 0 ] += '+(';
-						// current i = object
 						current[ 0 ] += '((';
 						current[ 0 ] += 'a(' + tmpValue + ')&&';
 						current[ 0 ] += '(!Array.isArray(t[t[0]])||(t[t[0]]=Object.assign({},t[t[0]])))&&';
 						current[ 0 ] += '("object"===typeof t[t[0]]&&null!==t[t[0]]&&Object.keys(t[t[0]]).length)';
-						// current i = index for object loop ( i+=1 )
 						current[ 0 ] += ')?((t[++t[0]]=1)&&t[0]++):((t[0]+=2)&&false))';
 						current[ 0 ] += '?';
 						current[ 0 ] += 'Object.keys(t[t[0]-2]).reduce((o,e)=>{';
 						current[ 0 ] += 'r["' + tmpMatch[ 1 ] + '"]=t[t[0]-2][e];';
-						current[ 0 ] += 'r["REPEAT"]["' + tmpMatch[ 1 ] + '"]={};';
-						current[ 0 ] += 'r["REPEAT"]["' + tmpMatch[ 1 ] + '"]["index"]=e;';
-						// current i = free index ( i+=1 )
-						current[ 0 ] += 'r["REPEAT"]["' + tmpMatch[ 1 ] + '"]["number"]=t[t[0]-1]++;';
-						current[ 0 ] += 'r["REPEAT"]["' + tmpMatch[ 1 ] + '"]["even"]=0==(r["REPEAT"]["' + tmpMatch[ 1 ] + '"]["number"]%2);';
-						current[ 0 ] += 'r["REPEAT"]["' + tmpMatch[ 1 ] + '"]["odd"]=1==(r["REPEAT"]["' + tmpMatch[ 1 ] + '"]["number"]%2);';
-						current[ 0 ] += 'r["REPEAT"]["' + tmpMatch[ 1 ] + '"]["first"]=1==r["REPEAT"]["' + tmpMatch[ 1 ] + '"]["number"];';
-						current[ 0 ] += 'r["REPEAT"]["' + tmpMatch[ 1 ] + '"]["length"]=Object.keys(t[t[0]-2]);';
-						current[ 0 ] += 'r["REPEAT"]["' + tmpMatch[ 1 ] + '"]["last"]=r["REPEAT"]["' + tmpMatch[ 1 ] + '"]["length"]==r["REPEAT"]["' +
-														tmpMatch[ 1 ] + '"]["number"];';
+						current[ 0 ] += 'const n=t[t[0]-1]++,l=Object.keys(t[t[0]-2]).length;';
+						current[ 0 ] += 'r["REPEAT"]["' + tmpMatch[ 1 ] + '"]={' +
+														'index:e,' +
+														'number:n,' +
+														'length:l,' +
+														'even:0==(n%2),' +
+														'odd:1==(n%2),' +
+														'first:1==n,' +
+														'last:l==n' +
+														'};';
 						current[ 0 ] += 'return o';
 						// resetting i
 						current[ 7 ] = ';},""):"")+((t[0]-=2)&&(delete r["REPEAT"]["' + tmpMatch[ 1 ] + '"])&&delete(r["' + tmpMatch[ 1 ] + '"])?"":"")' + current[ 7 ];
@@ -270,18 +268,26 @@ export default class jTDAL {
 				if( attributes[ attribute ] ) {
 					const matches: RegExpStringIterator<RegExpExecArray> = attributes[ attribute ][ 3 ].matchAll( jTDAL._regexpAttributes );
 					for( tmpMatch of matches ) {
-						tmpValue = jTDAL._ParsePath( tmpMatch[ 2 ], false, this._macros );
+						const isFlag: boolean = '?' === tmpMatch[ 2 ];
+						tmpValue = jTDAL._ParsePath( tmpMatch[ 3 ], isFlag, this._macros );
 						if( 'false' === tmpValue ) {
 							if( undefined !== attributes[ tmpMatch[ 1 ] ] ) {
 								current[ 1 ] = current[ 1 ].replace( new RegExp( '\\s*\\b' + tmpMatch[ 1 ] + '\\b(?:=([\'"]).*?\\1)?(?=\\s|\\/?>)' ), '' );
 							}
 						} else if( 'true' !== tmpValue ) {
-							current[ 2 ] += '+(a(' + tmpValue + ')&&("string"===typeof t[t[0]]||("number"===typeof t[t[0]]&&!isNaN(t[t[0]])))?" ' + tmpMatch[ 1 ] + '=\\""+t[t[0]]+"\\"":(true!==t[t[0]]?"":"' + tmpMatch[ 1 ] + '"';
+							if( isFlag ) {
+								current[ 2 ] += `+(${ tmpValue }?" ${ tmpMatch[ 1 ] }":""`;
+							} else {
+								current[ 2 ] += `+(a(${ tmpValue })&&( "string" === typeof t[t[0]] || ( "number" === typeof t[t[0]] && !isNaN(t[t[0]])))?" ${ tmpMatch[ 1 ] }=\\""+t[t[0]]+"\\"":( true !== t[t[0]]?"":"${ tmpMatch[ 1 ] }"`;
+							}
 							if( undefined !== attributes[ tmpMatch[ 1 ] ] ) {
 								current[ 1 ] = current[ 1 ].replace( new RegExp( '\\s*\\b' + tmpMatch[ 1 ] + '\\b(?:=([\'"]).*?\\1)?(?=\\s|\\/?>)' ), '' );
 								current[ 2 ] += ( ( ( undefined !== attributes[ tmpMatch[ 1 ] ][ 3 ] ) && ( '' != attributes[ tmpMatch[ 1 ] ][ 3 ] ) ) ? '+"="+' + JSON.stringify( String( attributes[ tmpMatch[ 1 ] ][ 2 ] + attributes[ tmpMatch[ 1 ] ][ 3 ] + attributes[ tmpMatch[ 1 ] ][ 2 ] ) ) : "" );
 							}
-							current[ 2 ] += '))';
+							current[ 2 ] += ')';
+							if( !isFlag ) {
+								current[ 2 ] += ')';
+							}
 						}
 					}
 				}
@@ -315,7 +321,7 @@ export default class jTDAL {
 
 	public MacroAdd( macroName: string, template: string, trim: boolean = true, strip: boolean = true ): boolean {
 		let returnValue: boolean = false;
-		if( macroName.match( /^[a-zA-Z0-9]*$/ ) ) {
+		if( macroName.match( /^[a-zA-Z0-9-]*$/ ) ) {
 			returnValue = true;
 			this._macros[ macroName ] = '""' + this._Parse( strip ? template.replace( /<!--.*?-->/sg, '' ) : template );
 			if( trim ) {
@@ -337,7 +343,7 @@ export default class jTDAL {
 		let tmpValue: string = this._Parse( strip ? template.replace( /<!--.*?-->/sg, '' ) : template );
 		let returnValue: string = 'const r={"REPEAT":{}}';
 		returnValue += ',t=[1]';
-		returnValue += ',m={' + Object.keys( this._macros ).map( macro => '"' + macro + '":()=>' + this._macros[ macro ] ).join( ',' ) + '}';
+		returnValue += ',m={' + Object.keys( this._macros ).map( ( macro: string ): string => '"' + macro + '":()=>' + this._macros[ macro ] ).join( ',' ) + '}';
 		returnValue += ',a=(e)=>{';
 		returnValue += 't[t[0]]=e;';
 		returnValue += 'return false!==t[t[0]]';
@@ -350,7 +356,7 @@ export default class jTDAL {
 		returnValue += 'return z';
 		returnValue += '}';
 		returnValue += ',b=(v)=>{';
-		returnValue += 'return "object"===typeof v?null!==v&&0<Object.keys(v).length:(Array.isArray(v)?0<v.length:void 0!==v&&false!==v&&""!==v)';
+		returnValue += 'return v&&("object"===typeof v?0<Object.keys(v).length:(Array.isArray(v)?0<v.length:true))';
 		returnValue += '}';
 		returnValue += ';';
 		if( trim ) {
