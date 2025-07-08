@@ -16,7 +16,7 @@ export default class jTDAL {
     static _regexpContent = new RegExp('^[\\s]*(?:(structure)[\\s]+)?(' + jTDAL._regexpPatternExpressionAllowedBooleanMacro + ')[\\s]*$');
     static _regexpAttributes = new RegExp('[\\s]*(?:(?:([\\w\\-]+)(\\??)[\\s]+(' + jTDAL._regexpPatternExpressionAllowedBoolean + ')[\\s]*)(?:;;[\\s]*|$))', 'g');
     static _regexpAttributesTDAL = /\s*(data-tdal-[\w-]+)=(?:(['"])(.*?)\2|([^>\s'"]+))/gi;
-    static _HTML5VoidElements = ['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr'];
+    static _HTML5VoidElements = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr']);
     _macros = {};
     static _ParseString(stringExpression, macros = {}) {
         let returnValue = '""';
@@ -133,7 +133,7 @@ export default class jTDAL {
                 returnValue += "+" + JSON.stringify(String(template.substring(0, tmpTDALTags['index'])));
             }
             template = template.substring(tmpTDALTags['index'] + tmpTDALTags[0].length);
-            let selfClosed = !!tmpTDALTags[6] || jTDAL._HTML5VoidElements.includes(tmpTDALTags[1].toLowerCase());
+            let selfClosed = !!tmpTDALTags[6] || jTDAL._HTML5VoidElements.has(tmpTDALTags[1].toLowerCase());
             const current = ['', tmpTDALTags[0], '', '', '', '', '', ''];
             const attributes = {};
             const matches = tmpTDALTags[0].matchAll(jTDAL._regexpTagAttributes);
@@ -173,7 +173,7 @@ export default class jTDAL {
                 if (attributes[attribute] && (jTDAL._regexpCondition.exec(attributes[attribute][3]))) {
                     tmpValue = jTDAL._ParsePath(attributes[attribute][3], true, this._macros);
                     if ('false' === tmpValue) {
-                        break tdal;
+                        break;
                     }
                     else if ('true' !== tmpValue) {
                         current[0] += '+(true===' + tmpValue + '?""';
@@ -184,7 +184,7 @@ export default class jTDAL {
                 if (attributes[attribute] && (tmpMatch = jTDAL._regexpRepeat.exec(attributes[attribute][3]))) {
                     tmpValue = jTDAL._ParsePath(tmpMatch[2], false, this._macros);
                     if (('false' == tmpValue) || ('""' == tmpValue) || ('true' == tmpValue)) {
-                        break tdal;
+                        break;
                     }
                     else {
                         current[0] += '+(';

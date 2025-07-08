@@ -20,7 +20,7 @@ export default class jTDAL {
 	private static readonly _regexpContent: RegExp = new RegExp( '^[\\s]*(?:(structure)[\\s]+)?(' + jTDAL._regexpPatternExpressionAllowedBooleanMacro + ')[\\s]*$' );
 	private static readonly _regexpAttributes: RegExp = new RegExp( '[\\s]*(?:(?:([\\w\\-]+)(\\??)[\\s]+(' + jTDAL._regexpPatternExpressionAllowedBoolean + ')[\\s]*)(?:;;[\\s]*|$))', 'g' );
 	private static readonly _regexpAttributesTDAL: RegExp = /\s*(data-tdal-[\w-]+)=(?:(['"])(.*?)\2|([^>\s'"]+))/gi;
-	private static readonly _HTML5VoidElements: string[] = [ 'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr' ];
+	private static readonly _HTML5VoidElements: Set<string> = new Set<string>( [ 'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr' ] );
 	private _macros: Record<string, string> = {};
 
 	private static _ParseString( stringExpression: string, macros: Record<string, string> = {} ): string {
@@ -143,7 +143,7 @@ export default class jTDAL {
 			template = template.substring( tmpTDALTags[ 'index' ] + tmpTDALTags[ 0 ].length );
 
 			// selfclosed if /> or if is an area, base, br, col, embed, hr, img, input, link, meta, param, source, track, wbr
-			let selfClosed: boolean = !!tmpTDALTags[ 6 ] || jTDAL._HTML5VoidElements.includes( tmpTDALTags[ 1 ].toLowerCase() );
+			let selfClosed: boolean = !!tmpTDALTags[ 6 ] || jTDAL._HTML5VoidElements.has( tmpTDALTags[ 1 ].toLowerCase() );
 
 			// 0: js before tag open
 			// 1: tagOpen
@@ -194,7 +194,7 @@ export default class jTDAL {
 					tmpValue = jTDAL._ParsePath( attributes[ attribute ][ 3 ], true, this._macros );
 					if( 'false' === tmpValue ) {
 						// the tag (and it's content) should be removed
-						break tdal;
+						break;
 					} else if( 'true' !== tmpValue ) {
 						current[ 0 ] += '+(true===' + tmpValue + '?""';
 						current[ 7 ] = ':"")' + current[ 7 ];
@@ -204,8 +204,8 @@ export default class jTDAL {
 				if( attributes[ attribute ] && ( tmpMatch = jTDAL._regexpRepeat.exec( attributes[ attribute ][ 3 ] ) ) ) {
 					tmpValue = jTDAL._ParsePath( tmpMatch[ 2 ], false, this._macros );
 					if( ( 'false' == tmpValue ) || ( '""' == tmpValue ) || ( 'true' == tmpValue ) ) {
-						// 0 repetition, same as condition false
-						break tdal;
+						// 0 repetitions, same as condition false
+						break;
 					} else {
 						current[ 0 ] += '+(';
 						current[ 0 ] += '((';
