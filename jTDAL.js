@@ -18,6 +18,9 @@ export default class jTDAL {
     static _regexpAttributesTDAL = /\s*(data-tdal-[\w-]+)=(?:(['"])(.*?)\2|([^>\s'"]+))/gi;
     static _HTML5VoidElements = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr']);
     _macros = {};
+    _trim;
+    _strip;
+    _loopOnlyArray;
     static _ParseString(stringExpression, macros = {}) {
         let returnValue = '""';
         let match;
@@ -107,10 +110,10 @@ export default class jTDAL {
                                 }
                                 default: {
                                     if (boolPath) {
-                                        returnValue += (not ? '!(' : '') + '(a(c(r,"' + path.join('/') + '"))&&b(t[t[0]]))||(a(c(d,"' + path.join('/') + '"))&&b(t[t[0]]))' + (not ? ')' : '');
+                                        returnValue += (not ? '!(' : '') + 'b(c(r,"' + path.join('/') + '"))||b(c(d,"' + path.join('/') + '"))' + (not ? ')' : '');
                                     }
                                     else {
-                                        returnValue += '((a(c(r,"' + path.join('/') + '"))||a(c(d,"' + path.join('/') + '")))?t[t[0]]:false)';
+                                        returnValue += '([c(r,"' + path.join('/') + '"),c(d,"' + path.join('/') + '")].find((v)=>false!==v)??false)';
                                     }
                                 }
                             }
@@ -123,6 +126,11 @@ export default class jTDAL {
             returnValue = 'false';
         }
         return returnValue;
+    }
+    constructor(trim = true, strip = true, loopOnlyArray = true) {
+        this._trim = trim;
+        this._strip = strip;
+        this._loopOnlyArray = loopOnlyArray;
     }
     _Parse(template) {
         let returnValue = '';
@@ -187,27 +195,55 @@ export default class jTDAL {
                         break;
                     }
                     else {
-                        current[0] += '+(';
-                        current[0] += '((';
-                        current[0] += 'a(' + tmpValue + ')&&';
-                        current[0] += '(!Array.isArray(t[t[0]])||(t[t[0]]=Object.assign({},t[t[0]])))&&';
-                        current[0] += '("object"===typeof t[t[0]]&&null!==t[t[0]]&&Object.keys(t[t[0]]).length)';
-                        current[0] += ')?((t[++t[0]]=1)&&t[0]++):((t[0]+=2)&&false))';
-                        current[0] += '?';
-                        current[0] += 'Object.keys(t[t[0]-2]).reduce((o,e)=>{';
-                        current[0] += 'r["' + tmpMatch[1] + '"]=t[t[0]-2][e];';
-                        current[0] += 'const n=t[t[0]-1]++,l=Object.keys(t[t[0]-2]).length;';
-                        current[0] += 'r["REPEAT"]["' + tmpMatch[1] + '"]={' +
-                            'index:e,' +
-                            'number:n,' +
-                            'length:l,' +
-                            'even:0==(n%2),' +
-                            'odd:1==(n%2),' +
-                            'first:1==n,' +
-                            'last:l==n' +
-                            '};';
-                        current[0] += 'return o';
-                        current[7] = ';},""):"")+((t[0]-=2)&&(delete r["REPEAT"]["' + tmpMatch[1] + '"])&&delete(r["' + tmpMatch[1] + '"])?"":"")' + current[7];
+                        if (this._loopOnlyArray) {
+                            current[0] += '+(';
+                            current[0] += '(t[0]+=2)&&';
+                            current[0] += 'a(' + tmpValue + ',-2)&&';
+                            current[0] += 'Array.isArray(t[t[0]-2])&&';
+                            current[0] += '(t[t[0]-1]=t[t[0]-2].length)';
+                            current[0] += '?';
+                            current[0] += 't[t[0]-2].reduce(';
+                            current[0] += '(o,v,i)=>{';
+                            current[0] += 'r["' + tmpMatch[1] + '"]=v;';
+                            current[0] += 'const n=i+1,l=t[t[0]-1];';
+                            current[0] += 'r["REPEAT"]["' + tmpMatch[1] + '"]={' +
+                                'index:i,' +
+                                'number:n,' +
+                                'length:l,' +
+                                'even:0==(n%2),' +
+                                'odd:1==(n%2),' +
+                                'first:1==n,' +
+                                'last:l==n' +
+                                '};';
+                            current[0] += 'return o';
+                            current[7] = ';},""):"")+((t[0]-=2)&&(delete r["REPEAT"]["' + tmpMatch[1] + '"])&&(delete r["' + tmpMatch[1] + '"])?"":"")' + current[7];
+                        }
+                        else {
+                            current[0] += '+(';
+                            current[0] += '(t[0]+=3)&&';
+                            current[0] += 'a(' + tmpValue + ',-3)&&';
+                            current[0] += '(';
+                            current[0] += '(Array.isArray(t[t[0]-3])&&(t[t[0]-2]=t[t[0]-3])&&(t[t[0]-3]=true))';
+                            current[0] += '||';
+                            current[0] += '("object"===typeof t[t[0]-3]&&null!==t[t[0]-3]&&(t[t[0]-2]=Object.keys(t[t[0]-3])))';
+                            current[0] += ')&&(t[t[0]-1]=t[t[0]-2].length)';
+                            current[0] += '?';
+                            current[0] += 't[t[0]-2].reduce(';
+                            current[0] += '(o,v,i)=>{';
+                            current[0] += 'r["' + tmpMatch[1] + '"]=(true===t[t[0]-3])?v:t[t[0]-3][v];';
+                            current[0] += 'const n=i+1,l=t[t[0]-1];';
+                            current[0] += 'r["REPEAT"]["' + tmpMatch[1] + '"]={' +
+                                'index:(true===t[t[0]-3])?i:v,' +
+                                'number:n,' +
+                                'length:l,' +
+                                'even:0==(n%2),' +
+                                'odd:1==(n%2),' +
+                                'first:1==n,' +
+                                'last:l==n' +
+                                '};';
+                            current[0] += 'return o';
+                            current[7] = ';},""):"")+((t[0]-=3)&&(delete r["REPEAT"]["' + tmpMatch[1] + '"])&&(delete r["' + tmpMatch[1] + '"])?"":"")' + current[7];
+                        }
                     }
                 }
                 attribute = attributesPrefix + jTDAL._keywords[2];
@@ -262,7 +298,7 @@ export default class jTDAL {
                                 current[2] += `+(${tmpValue}?" ${tmpMatch[1]}":""`;
                             }
                             else {
-                                current[2] += `+(a(${tmpValue})&&( "string" === typeof t[t[0]] || ( "number" === typeof t[t[0]] && !isNaN(t[t[0]])))?" ${tmpMatch[1]}=\\""+t[t[0]]+"\\"":( true !== t[t[0]]?"":"${tmpMatch[1]}"`;
+                                current[2] += `+(a(${tmpValue})&&((t[t[0]]&&"string"===typeof t[t[0]])||("number"===typeof t[t[0]]&&!isNaN(t[t[0]])))?" ${tmpMatch[1]}=\\""+t[t[0]]+"\\"":( true !== t[t[0]]?"":"${tmpMatch[1]}"`;
                             }
                             if (undefined !== attributes[tmpMatch[1]]) {
                                 current[1] = current[1].replace(new RegExp('\\s*\\b' + tmpMatch[1] + '\\b(?:=([\'"]).*?\\1)?(?=\\s|\\/?>)'), '');
@@ -302,37 +338,31 @@ export default class jTDAL {
         returnValue += '+' + JSON.stringify(String(template));
         return returnValue;
     }
-    MacroAdd(macroName, template, trim = true, strip = true) {
+    MacroAdd(macroName, template) {
         let returnValue = false;
-        if (macroName.match(/^[a-zA-Z0-9-]*$/)) {
+        if (macroName.match(/^[a-zA-Z0-9-]+$/)) {
             returnValue = true;
-            this._macros[macroName] = '""' + this._Parse(strip ? template.replace(/<!--.*?-->/sg, '') : template);
-            if (trim) {
+            this._macros[macroName] = '""' + this._Parse(this._strip ? template.replace(/<!--.*?-->/sg, '') : template);
+            if (this._trim) {
                 this._macros[macroName] = '(' + this._macros[macroName] + ').trim()';
             }
         }
         return returnValue;
     }
-    constructor(macros = [], trim = true, strip = true) {
-        const cL1 = macros.length;
-        for (let iL1 = 0; iL1 < cL1; iL1++) {
-            this.MacroAdd(macros[iL1][0], macros[iL1][1], trim, strip);
-        }
-    }
-    _Compile(template, trim = true, strip = true) {
+    _Compile(template) {
         const tmpArray = ['', ''];
-        let tmpValue = this._Parse(strip ? template.replace(/<!--.*?-->/sg, '') : template);
+        let tmpValue = this._Parse(this._strip ? template.replace(/<!--.*?-->/sg, '') : template);
         let returnValue = 'const r={"REPEAT":{}}';
         returnValue += ',t=[1]';
         returnValue += ',m={' + Object.keys(this._macros).map((macro) => '"' + macro + '":()=>' + this._macros[macro]).join(',') + '}';
-        returnValue += ',a=(e)=>{';
-        returnValue += 't[t[0]]=e;';
-        returnValue += 'return false!==t[t[0]]';
+        returnValue += ',a=(e,i=0)=>{';
+        returnValue += 't[t[0]+i]=e;';
+        returnValue += 'return false!==t[t[0]+i]';
         returnValue += '}';
         returnValue += ',c=(a,b)=>{';
-        returnValue += 'let z=!1,y=b.split("/"),x,w;';
-        returnValue += 'if(0<y.length&&0<y[0].length)';
-        returnValue += 'for(z=a,x=0;x<y.length&&1!==z;x++)';
+        returnValue += 'let z=!1,y=b.split("/"),x,w,l=y.length;';
+        returnValue += 'if(l&&y[0].length)';
+        returnValue += 'for(z=a,x=0;x<l&&1!==z;x++)';
         returnValue += 'z="object"===typeof z&&null!==z&&void 0!==(w="function"===typeof z[y[x]]?z[y[x]](d,r):z[y[x]])&&w;';
         returnValue += 'return z';
         returnValue += '}';
@@ -340,7 +370,7 @@ export default class jTDAL {
         returnValue += 'return v&&("object"===typeof v?0<Object.keys(v).length:(Array.isArray(v)?0<v.length:true))';
         returnValue += '}';
         returnValue += ';';
-        if (trim) {
+        if (this._trim) {
             tmpArray[0] = '(';
             tmpArray[1] = ').trim()';
         }
@@ -352,10 +382,10 @@ export default class jTDAL {
         } while (tmpValue != returnValue);
         return returnValue;
     }
-    CompileToFunction(template, trim = true, strip = true) {
-        return new Function('d', this._Compile(template, trim, strip));
+    CompileToFunction(template) {
+        return new Function('d', this._Compile(template));
     }
-    CompileToString(template, trim = true, strip = true) {
-        return 'function(d){' + this._Compile(template, trim, strip) + '}';
+    CompileToString(template) {
+        return 'function(d){' + this._Compile(template) + '}';
     }
 }

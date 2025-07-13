@@ -18,12 +18,11 @@ You can use jTDAL directly in the browser or as an npm package.
 <script type="module">
     import jTDAL from 'https://unpkg.com/jtdal/jTDAL.min.js';
     
+    const templateEngine = new jTDAL( );
+    
     // Define a macro that contains a dynamic element
-    const macros = [ ];
-    macros.push( [ 'macrofoo', '<span data-tdal-content="foo"></span>, ' ] );
-    
-    const templateEngine = new jTDAL( macros );
-    
+    templateEngine.MacroAdd( 'macrofoo', '<span data-tdal-content="foo"></span>, ' );
+
     // Template that uses the macro with replace AND adds another element
     const template = `<span data-tdal-replace="MACRO:macrofoo"></span><span data-tdal-content="bar"></span>`;
     
@@ -49,9 +48,8 @@ Then use it in your project:
 ```javascript
 import jTDAL from 'jtdal';
 
-// Create template engine with initial macros
-const macros = [ ];
-const templateEngine = new jTDAL( macros );
+// Create template engine
+const templateEngine = new jTDAL( );
 
 // Add a macro that contains a dynamic element
 templateEngine.MacroAdd( 'macrofoo', '<span data-tdal-content="foo"></span>, ' );
@@ -65,6 +63,14 @@ const result = t(data);
 
 console.log(result);
 // Output: Hello, World
+```
+
+## Constructor
+
+Constructor takes 2 parameters that controls trim and strip behaviour:
+
+```code
+constructor( trim = true, strip = true )
 ```
 
 ## Attributes

@@ -8,7 +8,7 @@
     "type": "git",
     "url": "https://github.com/StefanoBalocco/jTDAL.git"
   },
-  "version": "4.1.1",
+  "version": "5.0.0",
   "keywords": [
     "template engine",
     "tal"
@@ -21,11 +21,10 @@
   "homepage": "https://github.com/StefanoBalocco/jTDAL",
   "scripts": {
     "build": "node_modules/typescript/bin/tsc && node_modules/terser/bin/terser jTDAL.js -o jTDAL.min.js --toplevel -m -c --mangle-props regex=/^_/",
-    "test": "node_modules/typescript/bin/tsc -p tsconfig.tests.json && node_modules/ava/entrypoints/cli.mjs",
-    "test:watch": "node_modules/ava/entrypoints/cli.mjs --watch"
+    "test": "node_modules/typescript/bin/tsc -p tsconfig.tests.json && node_modules/ava/entrypoints/cli.mjs"
   },
   "devDependencies": {
-    "ava": "^6.4.0",
+    "ava": "~6",
     "terser": "~5",
     "typescript": "~5"
   }

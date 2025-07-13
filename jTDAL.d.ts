@@ -17,13 +17,16 @@ export default class jTDAL {
     private static readonly _regexpAttributesTDAL;
     private static readonly _HTML5VoidElements;
     private _macros;
+    private _trim;
+    private _strip;
+    private _loopOnlyArray;
     private static _ParseString;
     private static _ParsePath;
+    constructor(trim?: boolean, strip?: boolean, loopOnlyArray?: boolean);
     private _Parse;
-    MacroAdd(macroName: string, template: string, trim?: boolean, strip?: boolean): boolean;
-    constructor(macros?: [string, string][], trim?: boolean, strip?: boolean);
+    MacroAdd(macroName: string, template: string): boolean;
     private _Compile;
-    CompileToFunction(template: string, trim?: boolean, strip?: boolean): TemplateEngine;
-    CompileToString(template: string, trim?: boolean, strip?: boolean): string;
+    CompileToFunction(template: string): TemplateEngine;
+    CompileToString(template: string): string;
 }
 export {};

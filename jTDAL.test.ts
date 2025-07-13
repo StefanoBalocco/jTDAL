@@ -15,6 +15,7 @@ const testData = {
 	stringPath: '/test.jpg',
 	stringClass: 'button',
 	stringPage: 'about',
+	stringEmpty: '',
 
 	number: 42,
 
@@ -116,16 +117,34 @@ test.before( () => {
 	} );
 
 	test( prefix + ': should repeat element for object properties', ( t ) => {
+		templateEngine = new jTDAL( true, true, false );
 		const expected: string = '<div>Apple</div><div>Banana</div>';
-		const template: string = '<div data-tdal-repeat="value object" data-tdal-content="value">Default</div>';
+		const template: string = '<div data-tdal-repeat="item object" data-tdal-content="item">Default</div>';
 		const compiled = templateEngine.CompileToFunction( template );
 		const result: string = compiled( testData );
 		t.is( result, expected );
 	} );
 
-	test( prefix + ': should provide REPEAT variable with metadata', ( t ) => {
+	test( prefix + ': should provide REPEAT variable with metadata (number)', ( t ) => {
 		const expected: string = '<li>1</li><li>2</li><li>3</li>';
 		const template: string = '<li data-tdal-repeat="item arrayStrings" data-tdal-content="REPEAT/item/number">Default</li>';
+		const compiled = templateEngine.CompileToFunction( template );
+		const result: string = compiled( testData );
+		t.is( result, expected );
+	} );
+
+	test( prefix + ': should provide REPEAT variable with metadata (index)', ( t ) => {
+		const expected: string = '<li>0</li><li>1</li><li>2</li>';
+		const template: string = '<li data-tdal-repeat="item arrayStrings" data-tdal-content="REPEAT/item/index">Default</li>';
+		const compiled = templateEngine.CompileToFunction( template );
+		const result: string = compiled( testData );
+		t.is( result, expected );
+	} );
+
+	test( prefix + ': should provide REPEAT variable with metadata (index, on object)', ( t ) => {
+		templateEngine = new jTDAL( true, true, false );
+		const expected: string = '<div>a</div><div>b</div>';
+		const template: string = '<div data-tdal-repeat="item object" data-tdal-content="REPEAT/item/index">Default</div>';
 		const compiled = templateEngine.CompileToFunction( template );
 		const result: string = compiled( testData );
 		t.is( result, expected );
@@ -311,6 +330,22 @@ test.before( () => {
 		const result: string = compiled( testData );
 		t.is( result, expected );
 	} );
+
+	test( prefix + ': if attribute value is empty, remove it', ( t ) => {
+		const expected: string = '<a>Link</a>';
+		const template: string = '<a data-tdal-attributes="href stringEmpty" href="http://www.example.org">Link</a>';
+		const compiled = templateEngine.CompileToFunction( template );
+		const result: string = compiled( testData );
+		t.is( result, expected );
+	} );
+
+	test( prefix + ': if attribute STRING value is empty, remove it', ( t ) => {
+		const expected: string = '<a>Link</a>';
+		const template: string = '<a data-tdal-attributes="href STRING:{stringEmpty}" href="http://www.example.org">Link</a>';
+		const compiled = templateEngine.CompileToFunction( template );
+		const result: string = compiled( testData );
+		t.is( result, expected );
+	} );
 }
 
 {
@@ -384,18 +419,6 @@ test.before( () => {
 		const expected: string = '<div></div>';
 		const template: string = '<div data-tdal-content="MACRO:nonexistent">Default</div>';
 		const compiled = templateEngine.CompileToFunction( template );
-		const result: string = compiled( testData );
-		t.is( result, expected );
-	} );
-
-	test( prefix + ': should initialize with macros in constructor', ( t ) => {
-		const expected: string = '<div><span>Test Macro</span></div>';
-		const macros: [ string, string ][] = [
-			[ 'test', '<span>Test Macro</span>' ]
-		];
-		const engine = new jTDAL( macros );
-		const template: string = '<div data-tdal-content="structure MACRO:test">Default</div>';
-		const compiled = engine.CompileToFunction( template );
 		const result: string = compiled( testData );
 		t.is( result, expected );
 	} );
@@ -540,9 +563,10 @@ test.before( () => {
 	} );
 
 	test( prefix + ': should keep comments when strip is false', ( t ) => {
+		templateEngine = new jTDAL( true, false );
 		const expected: string = '<!-- Comment --><div>Content</div>';
 		const template: string = '<!-- Comment --><div>Content</div>';
-		const compiled = templateEngine.CompileToFunction( template, true, false );
+		const compiled = templateEngine.CompileToFunction( template );
 		const result: string = compiled( testData );
 		t.is( result, expected );
 	} );
@@ -593,15 +617,16 @@ test.before( () => {
 		test( prefix + ': when trim is true', ( t ) => {
 			const expected: string = '<div>Content</div>';
 			const template: string = '  <div>Content</div>  ';
-			const compiled = templateEngine.CompileToFunction( template, true );
+			const compiled = templateEngine.CompileToFunction( template );
 			const result: string = compiled( testData );
 			t.is( result, expected );
 		} );
 
 		test( prefix + ': when trim is false', ( t ) => {
+			templateEngine = new jTDAL( false );
 			const expected: string = '  <div>Content</div>  ';
 			const template: string = '  <div>Content</div>  ';
-			const compiled = templateEngine.CompileToFunction( template, false );
+			const compiled = templateEngine.CompileToFunction( template );
 			const result: string = compiled( testData );
 			t.is( result, expected );
 		} );
@@ -647,15 +672,16 @@ test.before( () => {
 	test( prefix + ': should handle large repeat loops', ( t ) => {
 		const template: string = '<li data-tdal-repeat="item largeArray" data-tdal-content="item">Default</li>';
 		const compiled = templateEngine.CompileToFunction( template );
-		const largeArray = Array.from( { length: 1000 }, ( _, i ) => `Item ${ i }` );
+		const largeArray = Array.from( { length: 1000 }, ( _: any, i: any ) => `Item ${ i }` );
 		const result: string = compiled( { largeArray } );
 		let expected: string = '';
-		largeArray.forEach( item => {
-			expected += `<li>${ item }</li>`;
-		} );
+		largeArray.forEach(
+			( item: any ) => {
+				expected += `<li>${ item }</li>`;
+			}
+		);
 		t.is( result, expected );
 	} );
-
 	test( prefix + ': should handle deeply nested templates', ( t ) => {
 		let expected: string = '<div>';
 		const levels = 10;
@@ -668,7 +694,7 @@ test.before( () => {
 		expected += '</div>';
 		let template: string = '<div data-tdal-condition="TRUE">';
 		for( let i = 0; i < levels; i++ ) {
-			template += `<div data-tdal-attributes="data-value STRING:Level ${ i }">`;
+			template += `<div data-tdal-attributes="data-value STRING:Level ${i}">`;
 		}
 		for( let i = 0; i < levels; i++ ) {
 			template += '</div>';
