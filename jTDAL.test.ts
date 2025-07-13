@@ -117,7 +117,6 @@ test.before( () => {
 	} );
 
 	test( prefix + ': should repeat element for object properties', ( t ) => {
-		templateEngine = new jTDAL( true, true, false );
 		const expected: string = '<div>Apple</div><div>Banana</div>';
 		const template: string = '<div data-tdal-repeat="item object" data-tdal-content="item">Default</div>';
 		const compiled = templateEngine.CompileToFunction( template );
@@ -142,7 +141,6 @@ test.before( () => {
 	} );
 
 	test( prefix + ': should provide REPEAT variable with metadata (index, on object)', ( t ) => {
-		templateEngine = new jTDAL( true, true, false );
 		const expected: string = '<div>a</div><div>b</div>';
 		const template: string = '<div data-tdal-repeat="item object" data-tdal-content="REPEAT/item/index">Default</div>';
 		const compiled = templateEngine.CompileToFunction( template );

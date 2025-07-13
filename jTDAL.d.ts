@@ -19,10 +19,9 @@ export default class jTDAL {
     private _macros;
     private _trim;
     private _strip;
-    private _loopOnlyArray;
     private static _ParseString;
     private static _ParsePath;
-    constructor(trim?: boolean, strip?: boolean, loopOnlyArray?: boolean);
+    constructor(trim?: boolean, strip?: boolean);
     private _Parse;
     MacroAdd(macroName: string, template: string): boolean;
     private _Compile;

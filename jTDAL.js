@@ -20,7 +20,6 @@ export default class jTDAL {
     _macros = {};
     _trim;
     _strip;
-    _loopOnlyArray;
     static _ParseString(stringExpression, macros = {}) {
         let returnValue = '""';
         let match;
@@ -127,10 +126,9 @@ export default class jTDAL {
         }
         return returnValue;
     }
-    constructor(trim = true, strip = true, loopOnlyArray = true) {
+    constructor(trim = true, strip = true) {
         this._trim = trim;
         this._strip = strip;
-        this._loopOnlyArray = loopOnlyArray;
     }
     _Parse(template) {
         let returnValue = '';
@@ -195,55 +193,30 @@ export default class jTDAL {
                         break;
                     }
                     else {
-                        if (this._loopOnlyArray) {
-                            current[0] += '+(';
-                            current[0] += '(t[0]+=2)&&';
-                            current[0] += 'a(' + tmpValue + ',-2)&&';
-                            current[0] += 'Array.isArray(t[t[0]-2])&&';
-                            current[0] += '(t[t[0]-1]=t[t[0]-2].length)';
-                            current[0] += '?';
-                            current[0] += 't[t[0]-2].reduce(';
-                            current[0] += '(o,v,i)=>{';
-                            current[0] += 'r["' + tmpMatch[1] + '"]=v;';
-                            current[0] += 'const n=i+1,l=t[t[0]-1];';
-                            current[0] += 'r["REPEAT"]["' + tmpMatch[1] + '"]={' +
-                                'index:i,' +
-                                'number:n,' +
-                                'length:l,' +
-                                'even:0==(n%2),' +
-                                'odd:1==(n%2),' +
-                                'first:1==n,' +
-                                'last:l==n' +
-                                '};';
-                            current[0] += 'return o';
-                            current[7] = ';},""):"")+((t[0]-=2)&&(delete r["REPEAT"]["' + tmpMatch[1] + '"])&&(delete r["' + tmpMatch[1] + '"])?"":"")' + current[7];
-                        }
-                        else {
-                            current[0] += '+(';
-                            current[0] += '(t[0]+=3)&&';
-                            current[0] += 'a(' + tmpValue + ',-3)&&';
-                            current[0] += '(';
-                            current[0] += '(Array.isArray(t[t[0]-3])&&(t[t[0]-2]=t[t[0]-3])&&(t[t[0]-3]=true))';
-                            current[0] += '||';
-                            current[0] += '("object"===typeof t[t[0]-3]&&null!==t[t[0]-3]&&(t[t[0]-2]=Object.keys(t[t[0]-3])))';
-                            current[0] += ')&&(t[t[0]-1]=t[t[0]-2].length)';
-                            current[0] += '?';
-                            current[0] += 't[t[0]-2].reduce(';
-                            current[0] += '(o,v,i)=>{';
-                            current[0] += 'r["' + tmpMatch[1] + '"]=(true===t[t[0]-3])?v:t[t[0]-3][v];';
-                            current[0] += 'const n=i+1,l=t[t[0]-1];';
-                            current[0] += 'r["REPEAT"]["' + tmpMatch[1] + '"]={' +
-                                'index:(true===t[t[0]-3])?i:v,' +
-                                'number:n,' +
-                                'length:l,' +
-                                'even:0==(n%2),' +
-                                'odd:1==(n%2),' +
-                                'first:1==n,' +
-                                'last:l==n' +
-                                '};';
-                            current[0] += 'return o';
-                            current[7] = ';},""):"")+((t[0]-=3)&&(delete r["REPEAT"]["' + tmpMatch[1] + '"])&&(delete r["' + tmpMatch[1] + '"])?"":"")' + current[7];
-                        }
+                        current[0] += '+(';
+                        current[0] += '(t[0]+=3)&&';
+                        current[0] += 'a(' + tmpValue + ',-3)&&';
+                        current[0] += '(';
+                        current[0] += '(Array.isArray(t[t[0]-3])&&(t[t[0]-2]=t[t[0]-3])&&(t[t[0]-3]=true))';
+                        current[0] += '||';
+                        current[0] += '("object"===typeof t[t[0]-3]&&null!==t[t[0]-3]&&(t[t[0]-2]=Object.keys(t[t[0]-3])))';
+                        current[0] += ')&&(t[t[0]-1]=t[t[0]-2].length)';
+                        current[0] += '?';
+                        current[0] += 't[t[0]-2].reduce(';
+                        current[0] += '(o,v,i)=>{';
+                        current[0] += 'r["' + tmpMatch[1] + '"]=(true===t[t[0]-3])?v:t[t[0]-3][v];';
+                        current[0] += 'const n=i+1,l=t[t[0]-1];';
+                        current[0] += 'r["REPEAT"]["' + tmpMatch[1] + '"]={' +
+                            'index:(true===t[t[0]-3])?i:v,' +
+                            'number:n,' +
+                            'length:l,' +
+                            'even:0==(n%2),' +
+                            'odd:1==(n%2),' +
+                            'first:1==n,' +
+                            'last:l==n' +
+                            '};';
+                        current[0] += 'return o';
+                        current[7] = ';},""):"")+((t[0]-=3)&&(delete r["REPEAT"]["' + tmpMatch[1] + '"])&&(delete r["' + tmpMatch[1] + '"])?"":"")' + current[7];
                     }
                 }
                 attribute = attributesPrefix + jTDAL._keywords[2];
