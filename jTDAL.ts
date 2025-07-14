@@ -250,7 +250,7 @@ export default class jTDAL {
 						let encoding: string[] = [ '', '' ];
 						if( 'structure' != tmpMatch[ 1 ] ) {
 							encoding[ 0 ] = 'String(';
-							encoding[ 1 ] = ').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;")';
+							encoding[ 1 ] = ').replace(f,m=>s[m])';
 						}
 						current[ 3 ] += '+(a(' + tmpValue + ')&&("string"===typeof t[t[0]]||("number"===typeof t[t[0]]&&!isNaN(t[t[0]])))?' + encoding[ 0 ] + 't[t[0]]' + encoding[ 1 ] + ':(true!==t[t[0]]?"":""';
 						current[ 5 ] += '))';
@@ -267,7 +267,7 @@ export default class jTDAL {
 							let encoding: string[] = [ '', '' ];
 							if( 'structure' != tmpMatch[ 1 ] ) {
 								encoding[ 0 ] = 'String(';
-								encoding[ 1 ] = ').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;")';
+								encoding[ 1 ] = ').replace(f,m=>s[m])';
 							}
 							current[ 0 ] += '+(a(' + tmpValue + ')&&("string"===typeof t[t[0]]||("number"===typeof t[t[0]]&&!isNaN(t[t[0]])))?' + encoding[ 0 ] + 't[t[0]]' + encoding[ 1 ] + ':(true!==t[t[0]]?"":""';
 							current[ 7 ] = '))' + current[ 7 ];
@@ -343,10 +343,12 @@ export default class jTDAL {
 
 	private _Compile( template: string ): string {
 		const tmpArray: [ string, string ] = [ '', '' ];
-		let tmpValue: string = this._Parse( this._strip ? template.replace( /<!--.*?-->/sg, '' ) : template );
+		let tmpValue: string = this._Parse( this._strip ? template.replaceAll( /<!--.*?-->/sg, '' ) : template );
 		let returnValue: string = 'const r={"REPEAT":{}}';
 		returnValue += ',t=[1]';
 		returnValue += ',m={' + Object.keys( this._macros ).map( ( macro: string ): string => '"' + macro + '":()=>' + this._macros[ macro ] ).join( ',' ) + '}';
+		returnValue += ',f=/[&<>"]/g';
+		returnValue += ',s={"&":"&amp;","<":"&lt;",">":"&gt;","\\"":"&quot;"}';
 		returnValue += ',a=(e,i=0)=>{';
 		returnValue += 't[t[0]+i]=e;';
 		returnValue += 'return false!==t[t[0]+i]';

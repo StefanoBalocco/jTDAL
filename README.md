@@ -1,8 +1,23 @@
+```html
+<div>
+  Hello, <span data-tdal-replace="name">General Kenobi</span>!
+</div>
+```
+
 # jTDAL
+![License](https://img.shields.io/github/license/stefanobalocco/jTDAL) ![GZipped size](https://img.badgesize.io/stefanobalocco/jTDAL/master/jTDAL.min.js?compression=gzip)
 
 Small template engine based on Zope TAL, using data attributes.
 
 Written in TypeScript, for Node.js and the browser.
+
+* 🏝️ 0 dependencies
+* 🪶 Only ~2.7KB gzipped!
+* ⚡️ Written in TypeScript
+* 🎨 Designer-friendly
+  * Templates work in any WYSIWYG editor or browser preview
+  * No special syntax to break HTML validation
+* 🚀 Compile templates
 
 ## Why another template engine?
 
