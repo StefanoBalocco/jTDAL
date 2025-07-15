@@ -376,18 +376,3 @@ Replaces the tag's content with the template foo
 ```
 
 Replaces the tag with the template foo
-
-## 🎯 Cheat Sheet
-
-```text
-╔════════════════════╦═══════════════════════════════╦══════════════════════╗
-║ Attribute          ║ Purpose                       ║ Example              ║
-╠════════════════════╬═══════════════════════════════╬══════════════════════╣
-║ data-tdal-content  ║ Replace inner content         ║ "name"               ║
-║ data-tdal-replace  ║ Replace entire element        ║ "structure html"     ║
-║ data-tdal-repeat   ║ Loop over arrays/objects      ║ "item items"         ║
-║ data-tdal-condition║ Show/hide based on condition  ║ "isLoggedIn"         ║
-║ data-tdal-attributes║ Set element attributes       ║ "href url;;class c"  ║
-║ data-tdal-omittag  ║ Remove wrapper tag only       ║ "TRUE"               ║
-╚════════════════════╩═══════════════════════════════╩══════════════════════╝
-```
