@@ -18,12 +18,14 @@ const testData = {
 	stringEmpty: '',
 
 	number: 42,
+	numberZero: 0,
 
 	arrayStrings: [ 'A', 'B', 'C' ],
 	arrayNumbers: [ 1, 2, 3 ],
 	arrayEmpty: [],
 
 	object: { a: 'Apple', b: 'Banana' },
+	objectEmpty: {},
 	objectUser: {
 		active: true,
 		name: 'John Doe',
@@ -611,7 +613,7 @@ test.before( () => {
 	} );
 */
 	{
-		prefix = 'Edge cases and special scenarios should handle trim option';
+		prefix = 'Edge cases and special scenarios: should handle trim option';
 		test( prefix + ': when trim is true', ( t ) => {
 			const expected: string = '<div>Content</div>';
 			const template: string = '  <div>Content</div>  ';
@@ -631,7 +633,7 @@ test.before( () => {
 	}
 
 	{
-		prefix = 'Edge cases and special scenarios should handle null and undefined values';
+		prefix = 'Edge cases and special scenarios: should handle falsy values';
 		test( prefix + ': when value is null', ( t ) => {
 			const expected: string = '<span>Default</span>';
 			const template: string = '<span data-tdal-content="variableValue | STRING:Default">Original</span>';
@@ -643,6 +645,38 @@ test.before( () => {
 		test( prefix + ': when value is undefined', ( t ) => {
 			const expected: string = '<span>Default</span>';
 			const template: string = '<span data-tdal-content="variableValue | STRING:Default">Original</span>';
+			const compiled = templateEngine.CompileToFunction( template );
+			const result: string = compiled( { variableValue: undefined } );
+			t.is( result, expected );
+		} );
+
+		test( prefix + ': when value is 0', ( t ) => {
+			const expected: string = '<span>Default</span>';
+			const template: string = '<span data-tdal-content="numberZero | STRING:Default">Original</span>';
+			const compiled = templateEngine.CompileToFunction( template );
+			const result: string = compiled( { variableValue: undefined } );
+			t.is( result, expected );
+		} );
+
+		test( prefix + ': when value is an empty string', ( t ) => {
+			const expected: string = '<span>Default</span>';
+			const template: string = '<span data-tdal-content="stringEmpty | STRING:Default">Original</span>';
+			const compiled = templateEngine.CompileToFunction( template );
+			const result: string = compiled( { variableValue: undefined } );
+			t.is( result, expected );
+		} );
+
+		test( prefix + ': when value is an empty array', ( t ) => {
+			const expected: string = '<span>Default</span>';
+			const template: string = '<span data-tdal-content="arrayEmpty | STRING:Default">Original</span>';
+			const compiled = templateEngine.CompileToFunction( template );
+			const result: string = compiled( { variableValue: undefined } );
+			t.is( result, expected );
+		} );
+
+		test( prefix + ': when value is an empty object', ( t ) => {
+			const expected: string = '<span>Default</span>';
+			const template: string = '<span data-tdal-content="objectEmpty | STRING:Default">Original</span>';
 			const compiled = templateEngine.CompileToFunction( template );
 			const result: string = compiled( { variableValue: undefined } );
 			t.is( result, expected );

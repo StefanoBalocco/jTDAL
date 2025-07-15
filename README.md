@@ -1,11 +1,21 @@
 ```html
 <div>
-  Hello, <span data-tdal-replace="name">General Kenobi</span>!
+  Hello there, <span data-tdal-replace="name">world</span>
 </div>
+```
+```json
+{
+  "name": "General Kenobi"
+}
 ```
 
 # jTDAL
-![License](https://img.shields.io/github/license/stefanobalocco/jTDAL) ![GZipped size](https://img.badgesize.io/stefanobalocco/jTDAL/master/jTDAL.min.js?compression=gzip)
+
+**Template Attribute Language for JavaScript**
+
+[![npm](https://img.shields.io/npm/v/jtdal.svg)](https://www.npmjs.com/package/jtdal)
+[![License](https://img.shields.io/github/license/stefanobalocco/jTDAL)](https://github.com/StefanoBalocco/jTDAL/blob/master/LICENSE)
+![GZipped size](https://img.badgesize.io/stefanobalocco/jTDAL/master/jTDAL.min.js?compression=gzip)
 
 Small template engine based on Zope TAL, using data attributes.
 
@@ -88,31 +98,15 @@ Constructor takes 2 parameters that controls trim and strip behaviour:
 constructor( trim = true, strip = true )
 ```
 
-## Attributes
+## Methods
 
-The engine supports the following `data-` attributes. These attributes are resolved in the specified order:
+### CompileToFunction(template)
+Compile the template returning a callable function with an optional parameter `data`.
 
-1. `data-tdal-condition="path-expression-boolean-mod-allowed"`
+### CompileToString(template)
+Compile the template returning a string containing the function code. Usefull to precompile templates and save as javascript files.
 
-2. `data-tdal-repeat="variable-name path-expression"`
-
-3. `data-tdal-content="path-expression-string/macro-allowed`
-
-4. `data-tdal-replace="path-expression-string/macro-allowed"`
-
-5. `data-tdal-attributes="attribute path-expression-string-allowed[;;attribute path-expression-string-allowed]"`
-   - For boolean flag attributes, append `?` to the attribute name: `attribute? path-expression`
-
-6. `data-tdal-omittag="path-expression-boolean-mod-allowed"`
-
-In the documentation below, the attributes are described in the following order for better understanding:
-
-1. Omittag
-2. Attributes
-3. Content
-4. Replace
-5. Condition
-6. Repeat
+## Template language documentation
 
 ### Path Expressions
 
@@ -146,6 +140,8 @@ Special keywords:
 
 - `TRUE`: Always returns `true` (halts parsing)
 - `FALSE`: Always returns `false` (halts parsing)
+- `GLOBAL`: search directly in the global context bypassing other contexts (es. `GLOBAL/variableName`)
+- `REPEAT`: search directly in the repeat context bypassing other contexts (es. `REPEAT/variableName`)
 
 ### Strings
 A string is a path prefixed with `STRING:`. It can contain placeholders in the form {path-expression|another-path|last-path-but-not-a-string}. The placeholders are replaced with the value of the path expression.
@@ -155,6 +151,32 @@ Each {?condition} must be closed with a {?/condition}. Same for {?!condition}.
 ```code
 STRING:This is a string with a {foo}{?bar} and a {bar}{/bar} placeholder.
 ```
+
+### Attributes
+
+The engine supports the following `data-` attributes. These attributes are resolved in the specified order:
+
+1. `data-tdal-condition="path-expression-boolean-mod-allowed"`
+
+2. `data-tdal-repeat="variable-name path-expression"`
+
+3. `data-tdal-content="path-expression-string/macro-allowed`
+
+4. `data-tdal-replace="path-expression-string/macro-allowed"`
+
+5. `data-tdal-attributes="attribute path-expression-string-allowed[;;attribute path-expression-string-allowed]"`
+   - For boolean flag attributes, append `?` to the attribute name: `attribute? path-expression`
+
+6. `data-tdal-omittag="path-expression-boolean-mod-allowed"`
+
+In the documentation below, the attributes are described in the following order for better understanding:
+
+1. Omittag
+2. Attributes
+3. Content
+4. Replace
+5. Condition
+6. Repeat
 
 ### Attribute Details
 
@@ -354,3 +376,18 @@ Replaces the tag's content with the template foo
 ```
 
 Replaces the tag with the template foo
+
+## 🎯 Cheat Sheet
+
+```text
+╔════════════════════╦═══════════════════════════════╦══════════════════════╗
+║ Attribute          ║ Purpose                       ║ Example              ║
+╠════════════════════╬═══════════════════════════════╬══════════════════════╣
+║ data-tdal-content  ║ Replace inner content         ║ "name"               ║
+║ data-tdal-replace  ║ Replace entire element        ║ "structure html"     ║
+║ data-tdal-repeat   ║ Loop over arrays/objects      ║ "item items"         ║
+║ data-tdal-condition║ Show/hide based on condition  ║ "isLoggedIn"         ║
+║ data-tdal-attributes║ Set element attributes       ║ "href url;;class c"  ║
+║ data-tdal-omittag  ║ Remove wrapper tag only       ║ "TRUE"               ║
+╚════════════════════╩═══════════════════════════════╩══════════════════════╝
+```
