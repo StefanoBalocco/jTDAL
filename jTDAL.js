@@ -8,14 +8,14 @@ export default class jTDAL {
     static _regexpPatternExpressionAllowedBoolean = '(?:' + jTDAL._regexpPatternString + '|(?:' + jTDAL._regexpPatternPathBoolean + ')(?:[\\s]*\\|[\\s]*' + jTDAL._regexpPatternString + ')?)';
     static _regexpPatternExpressionAllowedBooleanMacro = '(?:' + jTDAL._regexpPatternMacro + '|' + jTDAL._regexpPatternString + '|' + jTDAL._regexpPatternPathBoolean + '(?:[\\s]*\\|[\\s]*' + jTDAL._regexpPatternString + ')?)';
     static _regexpPatternTagAttributes = '(?:[^<>"\']|"[^"]*"|\'[^\']*\')';
-    static _regexpTagWithTDAL = new RegExp('<((?:\\w+:)?\\w+)(\\s+' + jTDAL._regexpPatternTagAttributes + '+?)??\\s+\\bdata-tdal-(?:' + jTDAL._keywords.join('|') +
+    static _regexpTagWithTDAL = RegExp('<((?:\\w+:)?\\w+)(\\s+' + jTDAL._regexpPatternTagAttributes + '+?)??\\s+\\bdata-tdal-(?:' + jTDAL._keywords.join('|') +
         ')\\b=([\'"])(.*?)\\3(\\s+' + jTDAL._regexpPatternTagAttributes + '+?)??\\s*(\/)?>', 'i');
     static _regexpTagAttributes = /\s((?:[\w-]+:)?[\w-]+)(?:=(?:(['"])(.*?)\2|([^>\s'"]+)))?(?=\s|\/?>)/gi;
-    static _regexpPathString = new RegExp('(?:{(' + jTDAL._regexpPatternPath + ')}|{\\?(' + jTDAL._regexpPatternPathBoolean + ')}(.*?){\\/\\2})');
-    static _regexpCondition = new RegExp('^[\\s]*(' + jTDAL._regexpPatternExpressionAllowedBoolean + ')[\\s]*$');
-    static _regexpRepeat = new RegExp('^[\\s]*([\\w\\-]+?)[\\s]+(' + jTDAL._regexpPatternPath + ')[\\s]*$');
-    static _regexpContent = new RegExp('^[\\s]*(?:(structure)[\\s]+)?(' + jTDAL._regexpPatternExpressionAllowedBooleanMacro + ')[\\s]*$');
-    static _regexpAttributes = new RegExp('[\\s]*(?:(?:((?:[\\w\\-]+:)?[\\w\\-]+)(\\??)[\\s]+(' + jTDAL._regexpPatternExpressionAllowedBoolean + ')[\\s]*)(?:;;[\\s]*|$))', 'g');
+    static _regexpPathString = RegExp('(?:{(' + jTDAL._regexpPatternPath + ')}|{\\?(' + jTDAL._regexpPatternPathBoolean + ')}(.*?){\\/\\2})');
+    static _regexpCondition = RegExp('^[\\s]*(' + jTDAL._regexpPatternExpressionAllowedBoolean + ')[\\s]*$');
+    static _regexpRepeat = RegExp('^[\\s]*([\\w\\-]+?)[\\s]+(' + jTDAL._regexpPatternPath + ')[\\s]*$');
+    static _regexpContent = RegExp('^[\\s]*(?:(structure)[\\s]+)?(' + jTDAL._regexpPatternExpressionAllowedBooleanMacro + ')[\\s]*$');
+    static _regexpAttributes = RegExp('[\\s]*(?:(?:((?:[\\w\\-]+:)?[\\w\\-]+)(\\??)[\\s]+(' + jTDAL._regexpPatternExpressionAllowedBoolean + ')[\\s]*)(?:;;[\\s]*|$))', 'g');
     static _regexpAttributesTDAL = /\s*(data-tdal-[\w-]+)=(?:(['"])(.*?)\2|([^>\s'"]+))/gi;
     static _HTML5VoidElements = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr']);
     _macros = {};
@@ -150,7 +150,7 @@ export default class jTDAL {
             }
             current[1] = current[1].replaceAll(jTDAL._regexpAttributesTDAL, '');
             if (!selfClosed) {
-                const endTag = new RegExp('<(\\/)?' + tmpTDALTags[1] + jTDAL._regexpPatternTagAttributes + '*(?<!\\/)>', 'gi');
+                const endTag = RegExp('<(\\/)?' + tmpTDALTags[1] + jTDAL._regexpPatternTagAttributes + '*(?<!\\/)>', 'gi');
                 let closingPosition = [];
                 let tags = 1;
                 let tmpMatch;
@@ -265,7 +265,7 @@ export default class jTDAL {
                         tmpValue = jTDAL._ParsePath(tmpMatch[3], isFlag, this._macros);
                         if ('false' === tmpValue) {
                             if (undefined !== attributes[tmpMatch[1]]) {
-                                current[1] = current[1].replace(new RegExp('\\s*\\b' + tmpMatch[1] + '\\b(?:=([\'"]).*?\\1)?(?=\\s|\\/?>)'), '');
+                                current[1] = current[1].replace(RegExp('\\s*\\b' + tmpMatch[1] + '\\b(?:=([\'"]).*?\\1)?(?=\\s|\\/?>)'), '');
                             }
                         }
                         else if ('true' !== tmpValue) {
@@ -276,7 +276,7 @@ export default class jTDAL {
                                 current[2] += `+(a(${tmpValue})&&((t[t[0]]&&"string"===typeof t[t[0]])||("number"===typeof t[t[0]]&&!isNaN(t[t[0]])))?" ${tmpMatch[1]}=\\""+t[t[0]]+"\\"":( true !== t[t[0]]?"":" ${tmpMatch[1]}"`;
                             }
                             if (undefined !== attributes[tmpMatch[1]]) {
-                                current[1] = current[1].replace(new RegExp('\\s*\\b' + tmpMatch[1] + '\\b(?:=([\'"]).*?\\1)?(?=\\s|\\/?>)'), '');
+                                current[1] = current[1].replace(RegExp('\\s*\\b' + tmpMatch[1] + '\\b(?:=([\'"]).*?\\1)?(?=\\s|\\/?>)'), '');
                                 current[2] += (((undefined !== attributes[tmpMatch[1]][3]) && ('' != attributes[tmpMatch[1]][3])) ? '+"="+' + JSON.stringify(String(attributes[tmpMatch[1]][2] + attributes[tmpMatch[1]][3] + attributes[tmpMatch[1]][2])) : "");
                             }
                             current[2] += ')';

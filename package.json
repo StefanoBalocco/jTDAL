@@ -1,7 +1,12 @@
 {
-  "name": "jtdal",
+  "name": "@stefanobalocco/jtdal",
   "description": "Small template engine based on Zope TAL, using data attributes",
-  "exports": "./jTDAL.min.js",
+	"exports": {
+		".": {
+			"types": "./jTDAL.d.ts",
+			"default": "./jTDAL.min.js"
+		}
+	},
   "types": "jTDAL.d.ts",
   "files": [
     "jTDAL.js",
@@ -12,15 +17,17 @@
     "jTDAL.test.ts",
     "build.mjs",
     "tsconfig.json",
-    "tsconfig.tests.json",
-    "jsdom.d.ts"
+    "tsconfig.tests.json"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "type": "module",
   "repository": {
     "type": "git",
     "url": "https://github.com/StefanoBalocco/jTDAL.git"
   },
-  "version": "5.0.3",
+  "version": "5.1.0",
   "keywords": [
     "template engine",
     "tal"
@@ -32,15 +39,15 @@
   },
   "homepage": "https://github.com/StefanoBalocco/jTDAL",
   "scripts": {
-    "build": "npm run build:library && npm run build:tests",
-    "build:library": "node_modules/typescript/bin/tsc && node_modules/terser/bin/terser jTDAL.js -o jTDAL.min.js --toplevel -m -c --mangle-props regex=/^_/",
-    "build:tests": "node_modules/typescript/bin/tsc -p tsconfig.tests.json",
-    "tests": "npx ava *.test.js --verbose"
+    "build": "node build.mjs all",
+    "build:library": "node build.mjs library",
+    "build:tests": "node build.mjs tests",
+    "tests": "c8 --reporter=text --reporter=lcov ava *.test.js --verbose --serial"
   },
   "devDependencies": {
     "ava": "~6",
-    "c8": "~10",
+    "c8": "~12",
     "terser": "~5",
-    "typescript": "~5"
+    "typescript": "~6"
   }
 }

@@ -1,0 +1,61 @@
+name: Publish npm package
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout release tag
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.release.tag_name }}
+          persist-credentials: false
+
+      - name: Setup Node.js 24
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Validate release
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_PRERELEASE: ${{ github.event.release.prerelease }}
+        run: |
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          EXPECTED_TAG="v${PACKAGE_VERSION}"
+
+          if [ "${RELEASE_TAG}" != "${EXPECTED_TAG}" ]; then
+            echo "::error title=Version mismatch::Release tag '${RELEASE_TAG}' does not match package version '${PACKAGE_VERSION}' (expected '${EXPECTED_TAG}')"
+            exit 1
+          fi
+
+          if [ "${RELEASE_PRERELEASE}" = "true" ]; then
+            echo "::error title=Prerelease rejected::GitHub marks this release as a prerelease. Only stable releases are published."
+            exit 1
+          fi
+
+          if [[ "${PACKAGE_VERSION}" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)- ]]; then
+            echo "::error title=Prerelease version rejected::Package version '${PACKAGE_VERSION}' contains a prerelease suffix. Only stable versions are published."
+            exit 1
+          fi
+
+      - name: Build
+        run: npm run build
+
+      - name: Run tests
+        run: npm run tests
+
+      - name: Publish to npm
+        run: npm publish --access public

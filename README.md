@@ -13,7 +13,7 @@
 
 **Template Attribute Language for JavaScript**
 
-[![npm](https://img.shields.io/npm/v/jtdal.svg)](https://www.npmjs.com/package/jtdal)
+[![npm](https://img.shields.io/npm/v/%40stefanobalocco%2Fjtdal.svg)](https://www.npmjs.com/package/@stefanobalocco/jtdal)
 [![License](https://img.shields.io/github/license/stefanobalocco/jTDAL)](https://github.com/StefanoBalocco/jTDAL/blob/master/LICENSE)
 ![GZipped size](https://img.badgesize.io/stefanobalocco/jTDAL/master/jTDAL.min.js?compression=gzip)
 
@@ -37,7 +37,7 @@ I wanted a fast, attribute-based JavaScript template engine and couldn't find on
 
 ```html
 <script type="module">
-    import jTDAL from 'https://unpkg.com/jtdal/jTDAL.min.js';
+    import jTDAL from 'https://unpkg.com/@stefanobalocco/jtdal/jTDAL.min.js';
 
     const templateEngine = new jTDAL();
     const template = '<span data-tdal-content="message">placeholder</span>';
@@ -53,13 +53,13 @@ I wanted a fast, attribute-based JavaScript template engine and couldn't find on
 Install via npm:
 
 ```bash
-npm install jtdal
+npm install @stefanobalocco/jtdal
 ```
 
 Use it in your project:
 
 ```javascript
-import jTDAL from 'jtdal';
+import jTDAL from '@stefanobalocco/jtdal';
 
 const templateEngine = new jTDAL();
 const template = '<span data-tdal-content="message">placeholder</span>';

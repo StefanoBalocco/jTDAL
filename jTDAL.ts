@@ -12,14 +12,14 @@ export default class jTDAL {
 	private static readonly _regexpPatternExpressionAllowedBoolean: string = '(?:' + jTDAL._regexpPatternString + '|(?:' + jTDAL._regexpPatternPathBoolean + ')(?:[\\s]*\\|[\\s]*' + jTDAL._regexpPatternString + ')?)';
 	private static readonly _regexpPatternExpressionAllowedBooleanMacro: string = '(?:' + jTDAL._regexpPatternMacro + '|' + jTDAL._regexpPatternString + '|' + jTDAL._regexpPatternPathBoolean + '(?:[\\s]*\\|[\\s]*' + jTDAL._regexpPatternString + ')?)';
 	private static readonly _regexpPatternTagAttributes: string = '(?:[^<>"\']|"[^"]*"|\'[^\']*\')';
-	private static readonly _regexpTagWithTDAL: RegExp = new RegExp( '<((?:\\w+:)?\\w+)(\\s+' + jTDAL._regexpPatternTagAttributes + '+?)??\\s+\\bdata-tdal-(?:' + jTDAL._keywords.join( '|' ) +
-																																	 ')\\b=([\'"])(.*?)\\3(\\s+' + jTDAL._regexpPatternTagAttributes + '+?)??\\s*(\/)?>', 'i' );
+	private static readonly _regexpTagWithTDAL: RegExp = RegExp( '<((?:\\w+:)?\\w+)(\\s+' + jTDAL._regexpPatternTagAttributes + '+?)??\\s+\\bdata-tdal-(?:' + jTDAL._keywords.join( '|' ) +
+																																 ')\\b=([\'"])(.*?)\\3(\\s+' + jTDAL._regexpPatternTagAttributes + '+?)??\\s*(\/)?>', 'i' );
 	private static readonly _regexpTagAttributes: RegExp = /\s((?:[\w-]+:)?[\w-]+)(?:=(?:(['"])(.*?)\2|([^>\s'"]+)))?(?=\s|\/?>)/gi;
-	private static readonly _regexpPathString: RegExp = new RegExp( '(?:{(' + jTDAL._regexpPatternPath + ')}|{\\?(' + jTDAL._regexpPatternPathBoolean + ')}(.*?){\\/\\2})' );
-	private static readonly _regexpCondition: RegExp = new RegExp( '^[\\s]*(' + jTDAL._regexpPatternExpressionAllowedBoolean + ')[\\s]*$' );
-	private static readonly _regexpRepeat: RegExp = new RegExp( '^[\\s]*([\\w\\-]+?)[\\s]+(' + jTDAL._regexpPatternPath + ')[\\s]*$' );
-	private static readonly _regexpContent: RegExp = new RegExp( '^[\\s]*(?:(structure)[\\s]+)?(' + jTDAL._regexpPatternExpressionAllowedBooleanMacro + ')[\\s]*$' );
-	private static readonly _regexpAttributes: RegExp = new RegExp( '[\\s]*(?:(?:((?:[\\w\\-]+:)?[\\w\\-]+)(\\??)[\\s]+(' + jTDAL._regexpPatternExpressionAllowedBoolean + ')[\\s]*)(?:;;[\\s]*|$))', 'g' );
+	private static readonly _regexpPathString: RegExp = RegExp( '(?:{(' + jTDAL._regexpPatternPath + ')}|{\\?(' + jTDAL._regexpPatternPathBoolean + ')}(.*?){\\/\\2})' );
+	private static readonly _regexpCondition: RegExp = RegExp( '^[\\s]*(' + jTDAL._regexpPatternExpressionAllowedBoolean + ')[\\s]*$' );
+	private static readonly _regexpRepeat: RegExp = RegExp( '^[\\s]*([\\w\\-]+?)[\\s]+(' + jTDAL._regexpPatternPath + ')[\\s]*$' );
+	private static readonly _regexpContent: RegExp = RegExp( '^[\\s]*(?:(structure)[\\s]+)?(' + jTDAL._regexpPatternExpressionAllowedBooleanMacro + ')[\\s]*$' );
+	private static readonly _regexpAttributes: RegExp = RegExp( '[\\s]*(?:(?:((?:[\\w\\-]+:)?[\\w\\-]+)(\\??)[\\s]+(' + jTDAL._regexpPatternExpressionAllowedBoolean + ')[\\s]*)(?:;;[\\s]*|$))', 'g' );
 	private static readonly _regexpAttributesTDAL: RegExp = /\s*(data-tdal-[\w-]+)=(?:(['"])(.*?)\2|([^>\s'"]+))/gi;
 	private static readonly _HTML5VoidElements: Set<string> = new Set<string>( [ 'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr' ] );
 	private _macros: Record<string, string> = {};
@@ -170,7 +170,7 @@ export default class jTDAL {
 			current[ 1 ] = current[ 1 ].replaceAll( jTDAL._regexpAttributesTDAL, '' );
 
 			if( !selfClosed ) {
-				const endTag: RegExp = new RegExp( '<(\\/)?' + tmpTDALTags[ 1 ] + jTDAL._regexpPatternTagAttributes + '*(?<!\\/)>', 'gi' );
+				const endTag: RegExp = RegExp( '<(\\/)?' + tmpTDALTags[ 1 ] + jTDAL._regexpPatternTagAttributes + '*(?<!\\/)>', 'gi' );
 				let closingPosition: number[] = [];
 				let tags: number = 1;
 				let tmpMatch: Nullable<RegExpExecArray>;
@@ -281,7 +281,7 @@ export default class jTDAL {
 						tmpValue = jTDAL._ParsePath( tmpMatch[ 3 ], isFlag, this._macros );
 						if( 'false' === tmpValue ) {
 							if( undefined !== attributes[ tmpMatch[ 1 ] ] ) {
-								current[ 1 ] = current[ 1 ].replace( new RegExp( '\\s*\\b' + tmpMatch[ 1 ] + '\\b(?:=([\'"]).*?\\1)?(?=\\s|\\/?>)' ), '' );
+								current[ 1 ] = current[ 1 ].replace( RegExp( '\\s*\\b' + tmpMatch[ 1 ] + '\\b(?:=([\'"]).*?\\1)?(?=\\s|\\/?>)' ), '' );
 							}
 						} else if( 'true' !== tmpValue ) {
 							if( isFlag ) {
@@ -290,7 +290,7 @@ export default class jTDAL {
 								current[ 2 ] += `+(a(${ tmpValue })&&((t[t[0]]&&"string"===typeof t[t[0]])||("number"===typeof t[t[0]]&&!isNaN(t[t[0]])))?" ${ tmpMatch[ 1 ] }=\\""+t[t[0]]+"\\"":( true !== t[t[0]]?"":" ${ tmpMatch[ 1 ] }"`;
 							}
 							if( undefined !== attributes[ tmpMatch[ 1 ] ] ) {
-								current[ 1 ] = current[ 1 ].replace( new RegExp( '\\s*\\b' + tmpMatch[ 1 ] + '\\b(?:=([\'"]).*?\\1)?(?=\\s|\\/?>)' ), '' );
+								current[ 1 ] = current[ 1 ].replace( RegExp( '\\s*\\b' + tmpMatch[ 1 ] + '\\b(?:=([\'"]).*?\\1)?(?=\\s|\\/?>)' ), '' );
 								current[ 2 ] += ( ( ( undefined !== attributes[ tmpMatch[ 1 ] ][ 3 ] ) && ( '' != attributes[ tmpMatch[ 1 ] ][ 3 ] ) ) ? '+"="+' + JSON.stringify( String( attributes[ tmpMatch[ 1 ] ][ 2 ] + attributes[ tmpMatch[ 1 ] ][ 3 ] + attributes[ tmpMatch[ 1 ] ][ 2 ] ) ) : "" );
 							}
 							current[ 2 ] += ')';
