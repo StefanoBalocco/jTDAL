@@ -11,14 +11,15 @@ export default class jTDAL {
 	private static readonly _regexpPatternPathBoolean: string = '(?:(?:!)?[\\w\\-\\/]*[\\w](?:[\\s]*\\|[\\s]*[\\w\\-\\/]*[\\w])*)';
 	private static readonly _regexpPatternExpressionAllowedBoolean: string = '(?:' + jTDAL._regexpPatternString + '|(?:' + jTDAL._regexpPatternPathBoolean + ')(?:[\\s]*\\|[\\s]*' + jTDAL._regexpPatternString + ')?)';
 	private static readonly _regexpPatternExpressionAllowedBooleanMacro: string = '(?:' + jTDAL._regexpPatternMacro + '|' + jTDAL._regexpPatternString + '|' + jTDAL._regexpPatternPathBoolean + '(?:[\\s]*\\|[\\s]*' + jTDAL._regexpPatternString + ')?)';
-	private static readonly _regexpTagWithTDAL: RegExp = new RegExp( '<((?:\\w+:)?\\w+)(\\s+[^<>]+?)??\\s+\\bdata-tdal-(?:' + jTDAL._keywords.join( '|' ) +
-																																	 ')\\b=([\'"])(.*?)\\3(\\s+[^<>]+?)??\\s*(\/)?>', 'i' );
+	private static readonly _regexpPatternTagAttributes: string = '(?:[^<>"\']|"[^"]*"|\'[^\']*\')';
+	private static readonly _regexpTagWithTDAL: RegExp = new RegExp( '<((?:\\w+:)?\\w+)(\\s+' + jTDAL._regexpPatternTagAttributes + '+?)??\\s+\\bdata-tdal-(?:' + jTDAL._keywords.join( '|' ) +
+																																	 ')\\b=([\'"])(.*?)\\3(\\s+' + jTDAL._regexpPatternTagAttributes + '+?)??\\s*(\/)?>', 'i' );
 	private static readonly _regexpTagAttributes: RegExp = /\s((?:[\w-]+:)?[\w-]+)(?:=(?:(['"])(.*?)\2|([^>\s'"]+)))?(?=\s|\/?>)/gi;
 	private static readonly _regexpPathString: RegExp = new RegExp( '(?:{(' + jTDAL._regexpPatternPath + ')}|{\\?(' + jTDAL._regexpPatternPathBoolean + ')}(.*?){\\/\\2})' );
 	private static readonly _regexpCondition: RegExp = new RegExp( '^[\\s]*(' + jTDAL._regexpPatternExpressionAllowedBoolean + ')[\\s]*$' );
 	private static readonly _regexpRepeat: RegExp = new RegExp( '^[\\s]*([\\w\\-]+?)[\\s]+(' + jTDAL._regexpPatternPath + ')[\\s]*$' );
 	private static readonly _regexpContent: RegExp = new RegExp( '^[\\s]*(?:(structure)[\\s]+)?(' + jTDAL._regexpPatternExpressionAllowedBooleanMacro + ')[\\s]*$' );
-	private static readonly _regexpAttributes: RegExp = new RegExp( '[\\s]*(?:(?:([\\w\\-]+)(\\??)[\\s]+(' + jTDAL._regexpPatternExpressionAllowedBoolean + ')[\\s]*)(?:;;[\\s]*|$))', 'g' );
+	private static readonly _regexpAttributes: RegExp = new RegExp( '[\\s]*(?:(?:((?:[\\w\\-]+:)?[\\w\\-]+)(\\??)[\\s]+(' + jTDAL._regexpPatternExpressionAllowedBoolean + ')[\\s]*)(?:;;[\\s]*|$))', 'g' );
 	private static readonly _regexpAttributesTDAL: RegExp = /\s*(data-tdal-[\w-]+)=(?:(['"])(.*?)\2|([^>\s'"]+))/gi;
 	private static readonly _HTML5VoidElements: Set<string> = new Set<string>( [ 'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr' ] );
 	private _macros: Record<string, string> = {};
@@ -53,9 +54,6 @@ export default class jTDAL {
 	}
 
 	private static _ParsePath( pathExpression: string, getBoolean: boolean = false, macros: Record<string, string> = {} ): string {
-		/* Boolean conversion:
-		 * (false!==(t[t[0]]=("function" === typeof #PATH#))&&null!==t[t[0]]&&!(Array.isArray(t[t[0]])&&1>t[t[0]].length)&&!("object"===typeof t[t[0]]&&1>Object.keys(t[t[0]]).length))
-		 */
 		let returnValue: string = '';
 		if( pathExpression ) {
 			paths: {
@@ -66,12 +64,13 @@ export default class jTDAL {
 						returnValue += '||';
 					}
 					let currentPath: string = paths[ iL1 ].replace( /^\s+/, '' );
+					let boolPath: boolean = getBoolean;
 					if( currentPath.startsWith( 'STRING:' ) ) {
-						returnValue += '(' + this._ParseString( currentPath.substring( 7 ) ) + ')';
+						returnValue += ( boolPath ? 'b' :'' ) + '(' + this._ParseString( currentPath.substring( 7 ) ) + ')';
 						break paths;
 					} else if( currentPath.startsWith( 'MACRO:' ) ) {
 						if( undefined !== macros[ currentPath.substring( 6 ) ] ) {
-							returnValue += '("function"===typeof m["' + currentPath.substring( 6 ) + '"]?m["' + currentPath.substring( 6 ) + '"]():false)';
+							returnValue += ( boolPath ? 'b' :'' ) + '("function"===typeof m["' + currentPath.substring( 6 ) + '"]?m["' + currentPath.substring( 6 ) + '"]():false)';
 						} else {
 							returnValue += 'false';
 						}
@@ -79,7 +78,7 @@ export default class jTDAL {
 					} else {
 						currentPath = currentPath.replace( /\s+$/, '' );
 						const not: boolean = ( '!' === currentPath[ 0 ] );
-						const boolPath: boolean = getBoolean || not;
+						boolPath = getBoolean || not;
 						const path: string[] = ( not ? currentPath.substring( 1 ) : currentPath ).split( '/' );
 						if( ( 0 < path.length ) && ( 0 < path[ 0 ].length ) ) {
 							switch( path[ 0 ] ) {
@@ -108,7 +107,7 @@ export default class jTDAL {
 								case 'GLOBAL': {
 									// at least two tokens: GLOBAL/variable
 									if( 1 < path.length && 0 < path[ 1 ].length ) {
-										// d must be a object
+										// d must be an object
 										// Skip GLOBAL
 										returnValue += ( boolPath ? ( not ? '!' : '' ) + 'b(' : '' ) + 'c(d,"' + path.slice( 1 ).join( '/' ) + '")' + ( boolPath ? ')' : '' );
 									}
@@ -171,7 +170,7 @@ export default class jTDAL {
 			current[ 1 ] = current[ 1 ].replaceAll( jTDAL._regexpAttributesTDAL, '' );
 
 			if( !selfClosed ) {
-				const endTag: RegExp = new RegExp( '<(\\/)?' + tmpTDALTags[ 1 ] + '[^<>]*(?<!\\/)>', 'gi' );
+				const endTag: RegExp = new RegExp( '<(\\/)?' + tmpTDALTags[ 1 ] + jTDAL._regexpPatternTagAttributes + '*(?<!\\/)>', 'gi' );
 				let closingPosition: number[] = [];
 				let tags: number = 1;
 				let tmpMatch: Nullable<RegExpExecArray>;
@@ -200,7 +199,7 @@ export default class jTDAL {
 				if( attributes[ attribute ] && ( jTDAL._regexpCondition.exec( attributes[ attribute ][ 3 ] ) ) ) {
 					tmpValue = jTDAL._ParsePath( attributes[ attribute ][ 3 ], true, this._macros );
 					if( 'false' === tmpValue ) {
-						// the tag (and it's content) should be removed
+						// the tag (and its content) should be removed
 						break;
 					} else if( 'true' !== tmpValue ) {
 						current[ 0 ] += '+(true===' + tmpValue + '?""';

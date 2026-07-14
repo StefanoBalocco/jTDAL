@@ -7,14 +7,15 @@ export default class jTDAL {
     static _regexpPatternPathBoolean = '(?:(?:!)?[\\w\\-\\/]*[\\w](?:[\\s]*\\|[\\s]*[\\w\\-\\/]*[\\w])*)';
     static _regexpPatternExpressionAllowedBoolean = '(?:' + jTDAL._regexpPatternString + '|(?:' + jTDAL._regexpPatternPathBoolean + ')(?:[\\s]*\\|[\\s]*' + jTDAL._regexpPatternString + ')?)';
     static _regexpPatternExpressionAllowedBooleanMacro = '(?:' + jTDAL._regexpPatternMacro + '|' + jTDAL._regexpPatternString + '|' + jTDAL._regexpPatternPathBoolean + '(?:[\\s]*\\|[\\s]*' + jTDAL._regexpPatternString + ')?)';
-    static _regexpTagWithTDAL = new RegExp('<((?:\\w+:)?\\w+)(\\s+[^<>]+?)??\\s+\\bdata-tdal-(?:' + jTDAL._keywords.join('|') +
-        ')\\b=([\'"])(.*?)\\3(\\s+[^<>]+?)??\\s*(\/)?>', 'i');
+    static _regexpPatternTagAttributes = '(?:[^<>"\']|"[^"]*"|\'[^\']*\')';
+    static _regexpTagWithTDAL = new RegExp('<((?:\\w+:)?\\w+)(\\s+' + jTDAL._regexpPatternTagAttributes + '+?)??\\s+\\bdata-tdal-(?:' + jTDAL._keywords.join('|') +
+        ')\\b=([\'"])(.*?)\\3(\\s+' + jTDAL._regexpPatternTagAttributes + '+?)??\\s*(\/)?>', 'i');
     static _regexpTagAttributes = /\s((?:[\w-]+:)?[\w-]+)(?:=(?:(['"])(.*?)\2|([^>\s'"]+)))?(?=\s|\/?>)/gi;
     static _regexpPathString = new RegExp('(?:{(' + jTDAL._regexpPatternPath + ')}|{\\?(' + jTDAL._regexpPatternPathBoolean + ')}(.*?){\\/\\2})');
     static _regexpCondition = new RegExp('^[\\s]*(' + jTDAL._regexpPatternExpressionAllowedBoolean + ')[\\s]*$');
     static _regexpRepeat = new RegExp('^[\\s]*([\\w\\-]+?)[\\s]+(' + jTDAL._regexpPatternPath + ')[\\s]*$');
     static _regexpContent = new RegExp('^[\\s]*(?:(structure)[\\s]+)?(' + jTDAL._regexpPatternExpressionAllowedBooleanMacro + ')[\\s]*$');
-    static _regexpAttributes = new RegExp('[\\s]*(?:(?:([\\w\\-]+)(\\??)[\\s]+(' + jTDAL._regexpPatternExpressionAllowedBoolean + ')[\\s]*)(?:;;[\\s]*|$))', 'g');
+    static _regexpAttributes = new RegExp('[\\s]*(?:(?:((?:[\\w\\-]+:)?[\\w\\-]+)(\\??)[\\s]+(' + jTDAL._regexpPatternExpressionAllowedBoolean + ')[\\s]*)(?:;;[\\s]*|$))', 'g');
     static _regexpAttributesTDAL = /\s*(data-tdal-[\w-]+)=(?:(['"])(.*?)\2|([^>\s'"]+))/gi;
     static _HTML5VoidElements = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr']);
     _macros = {};
@@ -57,13 +58,14 @@ export default class jTDAL {
                         returnValue += '||';
                     }
                     let currentPath = paths[iL1].replace(/^\s+/, '');
+                    let boolPath = getBoolean;
                     if (currentPath.startsWith('STRING:')) {
-                        returnValue += '(' + this._ParseString(currentPath.substring(7)) + ')';
+                        returnValue += (boolPath ? 'b' : '') + '(' + this._ParseString(currentPath.substring(7)) + ')';
                         break paths;
                     }
                     else if (currentPath.startsWith('MACRO:')) {
                         if (undefined !== macros[currentPath.substring(6)]) {
-                            returnValue += '("function"===typeof m["' + currentPath.substring(6) + '"]?m["' + currentPath.substring(6) + '"]():false)';
+                            returnValue += (boolPath ? 'b' : '') + '("function"===typeof m["' + currentPath.substring(6) + '"]?m["' + currentPath.substring(6) + '"]():false)';
                         }
                         else {
                             returnValue += 'false';
@@ -73,7 +75,7 @@ export default class jTDAL {
                     else {
                         currentPath = currentPath.replace(/\s+$/, '');
                         const not = ('!' === currentPath[0]);
-                        const boolPath = getBoolean || not;
+                        boolPath = getBoolean || not;
                         const path = (not ? currentPath.substring(1) : currentPath).split('/');
                         if ((0 < path.length) && (0 < path[0].length)) {
                             switch (path[0]) {
@@ -148,7 +150,7 @@ export default class jTDAL {
             }
             current[1] = current[1].replaceAll(jTDAL._regexpAttributesTDAL, '');
             if (!selfClosed) {
-                const endTag = new RegExp('<(\\/)?' + tmpTDALTags[1] + '[^<>]*(?<!\\/)>', 'gi');
+                const endTag = new RegExp('<(\\/)?' + tmpTDALTags[1] + jTDAL._regexpPatternTagAttributes + '*(?<!\\/)>', 'gi');
                 let closingPosition = [];
                 let tags = 1;
                 let tmpMatch;

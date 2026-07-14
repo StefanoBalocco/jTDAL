@@ -19,172 +19,325 @@
 
 Small template engine based on Zope TAL, using data attributes.
 
-Written in TypeScript, for Node.js and the browser.
+Runs on Node.js and in browsers. Written in TypeScript.
 
-* 🏝️ 0 dependencies
-* 🪶 Only ~2.7KB gzipped!
-* ⚡️ Written in TypeScript
-* 🎨 Designer-friendly
-  * Templates work in any WYSIWYG editor or browser preview
-  * No special syntax to break HTML validation
-* 🚀 Compile templates
+* 0 dependencies
+* Only ~2.7KB gzipped
+* Designer-friendly — templates work in any WYSIWYG editor or browser preview
+* No custom syntax to break HTML validation
+* Compile templates to optimized JavaScript functions
 
 ## Why another template engine?
 
-Because I didn't find a fast JavaScript template engine based on attributes. While Mustache is absolutely awesome, I find its syntax quite weird. Using attributes, the page can be designed with any WYSIWYG editor or previewed in the browser without the need for the actual rendering data.
+I wanted a fast, attribute-based JavaScript template engine and couldn't find one. Mustache is great, but its syntax always felt foreign to me. With data attributes, templates stay valid HTML — you can design them in any WYSIWYG editor or preview them in a browser without rendering data.
 
 ## Installation and Usage
-
-You can use jTDAL directly in the browser or as an npm package.
 
 ### Browser
 
 ```html
 <script type="module">
     import jTDAL from 'https://unpkg.com/jtdal/jTDAL.min.js';
-    
-    const templateEngine = new jTDAL( );
-    
-    // Define a macro that contains a dynamic element
-    templateEngine.MacroAdd( 'macrofoo', '<span data-tdal-content="foo"></span>, ' );
 
-    // Template that uses the macro with replace AND adds another element
-    const template = `<span data-tdal-replace="MACRO:macrofoo"></span><span data-tdal-content="bar"></span>`;
-    
-    const t = templateEngine.CompileToFunction(template);
-    const data = { foo: "Hello", bar: "World" };
-    const result = t(data);
-    
-    document.getElementById( 'result' ).innerHTML = result;
-    // Output: Hello, World
+    const templateEngine = new jTDAL();
+    const template = '<span data-tdal-content="message">placeholder</span>';
+    const render = templateEngine.CompileToFunction(template);
+    const result = render({ message: "Hello World" });
+
+    document.getElementById('result').innerHTML = result;
 </script>
 ```
 
 ### Node.js
 
-Install jTDAL via npm:
+Install via npm:
 
 ```bash
 npm install jtdal
 ```
 
-Then use it in your project:
+Use it in your project:
 
 ```javascript
 import jTDAL from 'jtdal';
 
-// Create template engine
-const templateEngine = new jTDAL( );
-
-// Add a macro that contains a dynamic element
-templateEngine.MacroAdd( 'macrofoo', '<span data-tdal-content="foo"></span>, ' );
-
-// Template that uses the macro with replace AND adds another element
-const template = `<span data-tdal-replace="MACRO:macrofoo"></span><span data-tdal-content="bar"></span>`;
-
-const t = templateEngine.CompileToFunction(template);
-const data = { foo: "Hello", bar: "World" };
-const result = t(data);
+const templateEngine = new jTDAL();
+const template = '<span data-tdal-content="message">placeholder</span>';
+const render = templateEngine.CompileToFunction(template);
+const result = render({ message: "Hello World" });
 
 console.log(result);
-// Output: Hello, World
+// Output: Hello World
 ```
 
 ## Constructor
 
-Constructor takes 2 parameters that controls trim and strip behaviour:
-
-```code
-constructor( trim = true, strip = true )
+```javascript
+constructor(trim = true, strip = true)
 ```
 
-## Methods
+- `trim` — Trim leading and trailing whitespace from the rendered output
+- `strip` — Remove HTML comments from the template before compilation
+
+## API
 
 ### CompileToFunction(template)
-Compile the template returning a callable function with an optional parameter `data`.
+
+Compiles a template string into a callable function that accepts a data object.
+
+```javascript
+const render = templateEngine.CompileToFunction(template);
+const html = render({ name: "Alice", items: [1, 2, 3] });
+```
 
 ### CompileToString(template)
-Compile the template returning a string containing the function code. Usefull to precompile templates and save as javascript files.
 
-## Template language documentation
+Compiles a template string into a string containing the generated function code. Useful for precompiling templates and saving them as JavaScript files.
+
+```javascript
+const code = templateEngine.CompileToString(template);
+// Returns a string like: "function(d){...}"
+```
+
+## Template Language
 
 ### Path Expressions
 
-A path expression indicates the position of the value in the data object. Given the following data:
+A path expression identifies a value in the data object using forward-slash notation.
+
+Given this data:
 
 ```javascript
-data = { foo: "bar", foobar: { bar: "foo" } };
+const data = {
+  logged: true,
+  user: { name: "Alice", permissions: { canEdit: false } }
+};
 ```
 
-- `foobar/bar` resolves to `foo`
-- `foo` resolves to `bar`
+Paths resolve as follows:
 
-The syntax of a path expression is:
+- `logged` resolves to `true`
+- `user/name` resolves to `"Alice"`
+- `user/permissions/canEdit` resolves to `false`
+
+#### Fallback Paths
+
+Use the pipe `|` character to provide fallback values. The first existing path is used:
 
 ```plaintext
-path/nonexistent | existing/path | never/reached
+missing/path | fallback/path | last/resort
 ```
 
-The first existing and truthy path is used as the result. If no paths match, `false` is returned.
+#### Falsy Values
 
-**Truthy/Falsy evaluation:**
-- Falsy values: `false`, `null`, `undefined`, `""` (empty string), `0`, `[]` (empty array), `{}` (empty object)
-- Everything else is considered truthy
+These values evaluate as falsy:
 
-#### Modifiers
+- `false`, `null`, `undefined`
+- `""` (empty string)
+- `0`
+- `[]` (empty array)
+- `{}` (empty object)
 
-- **Booleans**: Prefix with `!` for negation.
-- **Strings**: Prepend `STRING:` to define static strings or templates with placeholders.
+Everything else is truthy.
 
-Special keywords:
+#### Path Modifiers
 
-- `TRUE`: Always returns `true` (halts parsing)
-- `FALSE`: Always returns `false` (halts parsing)
-- `GLOBAL`: search directly in the global context bypassing other contexts (es. `GLOBAL/variableName`)
-- `REPEAT`: search directly in the repeat context bypassing other contexts (es. `REPEAT/variableName`)
+**Boolean Negation:**
+Prefix with `!` to negate a boolean:
 
-### Strings
-A string is a path prefixed with `STRING:`. It can contain placeholders in the form {path-expression|another-path|last-path-but-not-a-string}. The placeholders are replaced with the value of the path expression.
-In strings is possible to use `{?condition}` or `{?!condition}` for conditional inclusions.
-Each {?condition} must be closed with a {?/condition}. Same for {?!condition}.
-
-```code
-STRING:This is a string with a {foo}{?bar} and a {bar}{/bar} placeholder.
+```plaintext
+!isDisabled
 ```
 
-### Attributes
+**Uppercase Keywords:**
+- `TRUE` — Always returns `true` (stops fallback evaluation)
+- `FALSE` — Always returns `false` (stops fallback evaluation)
+- `GLOBAL` — Search in global context, bypassing local scopes (e.g. `GLOBAL/variableName`)
+- `REPEAT` — Search in the repeat context, bypassing local scopes (e.g. `REPEAT/variableName`)
 
-The engine supports the following `data-` attributes. These attributes are resolved in the specified order:
+### String Expressions
 
-1. `data-tdal-condition="path-expression-boolean-mod-allowed"`
+A string expression generates text using path expressions as placeholders. Prefix with `STRING:`:
 
-2. `data-tdal-repeat="variable-name path-expression"`
+```plaintext
+STRING:This is text with {placeholder} and {another/path}
+```
 
-3. `data-tdal-content="path-expression-string/macro-allowed`
+Placeholders are replaced with resolved path values.
 
-4. `data-tdal-replace="path-expression-string/macro-allowed"`
+**Conditional Inclusion:**
 
-5. `data-tdal-attributes="attribute path-expression-string-allowed[;;attribute path-expression-string-allowed]"`
-   - For boolean flag attributes, append `?` to the attribute name: `attribute? path-expression`
+Use `{?condition}...{/condition}` to conditionally include text:
 
-6. `data-tdal-omittag="path-expression-boolean-mod-allowed"`
+```plaintext
+STRING:Hello {name}{?user/isPremium} (Premium){/user/isPremium}
+```
 
-In the documentation below, the attributes are described in the following order for better understanding:
+Use `{?!condition}...{/!condition}` to negate:
 
-1. Omittag
-2. Attributes
-3. Content
-4. Replace
-5. Condition
-6. Repeat
+```plaintext
+STRING:Status: {?!isActive}Inactive{/!isActive}{?isActive}Active{/isActive}
+```
 
-### Attribute Details
+## Attributes
 
-#### Omittag
+The template processor applies attributes in this order:
 
-Removes the tag while keeping its content if the path expression evaluates to `true`.
+1. `data-tdal-condition` — Conditional rendering
+2. `data-tdal-repeat` — Loop iteration
+3. `data-tdal-content` — Replace tag content
+4. `data-tdal-replace` — Replace entire tag
+5. `data-tdal-attributes` — Dynamic attributes
+6. `data-tdal-omittag` — Remove tag wrapper
+
+### data-tdal-condition
+
+Renders the tag only if the expression evaluates to true; removes it otherwise. The expression can be a path with optional `!` negation, a `STRING:` expression, or a chain of fallbacks separated by `|`.
 
 **Examples:**
+
+```html
+<!-- Show if isLoggedIn is truthy -->
+<div data-tdal-condition="isLoggedIn">Welcome back!</div>
+
+<!-- Show if isGuest is falsy -->
+<div data-tdal-condition="!isGuest">Member content</div>
+
+<!-- Check nested path with fallback -->
+<div data-tdal-condition="user/permissions/canView | config/defaultVisible">
+  Content
+</div>
+
+<!-- Always show -->
+<div data-tdal-condition="TRUE">Always visible</div>
+```
+
+### data-tdal-repeat
+
+Repeats the element for each item in an array or each key in an object. Expects two arguments separated by a space: a name for the loop variable and a path to the collection. A `REPEAT` object is available to child expressions during iteration.
+
+**Syntax:**
+
+```html
+<li data-tdal-repeat="variable collection/path">...</li>
+```
+
+The `REPEAT` object provides:
+
+- `index` — Current index or object key
+- `number` — Iteration count, starting from 1
+- `even` — True on even iterations (2, 4, 6...)
+- `odd` — True on odd iterations (1, 3, 5...)
+- `first` — True for the first element
+- `last` — True for the last element
+- `length` — Total number of items
+
+**Examples:**
+
+```html
+<!-- Simple array iteration -->
+<ul>
+  <li data-tdal-repeat="item items" data-tdal-content="item">Item</li>
+</ul>
+
+<!-- Object iteration -->
+<div data-tdal-repeat="user users">
+  <h3 data-tdal-content="user/name">Name</h3>
+  <p data-tdal-content="user/email">Email</p>
+</div>
+
+<!-- Using REPEAT variables -->
+<tr data-tdal-repeat="row rows" data-tdal-attributes="class STRING:{?REPEAT/row/odd}odd{?/REPEAT/row/odd}{?REPEAT/row/even}even{?/REPEAT/row/even}">
+  <td data-tdal-content="REPEAT/row/number">Index</td>
+  <td data-tdal-content="row/value">Value</td>
+</tr>
+
+<!-- Nested repeats -->
+<div data-tdal-repeat="category categories">
+  <h2 data-tdal-content="category/name">Category</h2>
+  <ul>
+    <li data-tdal-repeat="product category/products" data-tdal-content="product/name">Product</li>
+  </ul>
+</div>
+```
+
+### data-tdal-content
+
+Replaces the tag's inner content with the result of the expression. The expression can be a path, a `STRING:` expression, or a `MACRO:` reference, with optional `!` negation and `|` fallbacks. Prefix with `structure` to insert raw HTML without escaping. If the expression evaluates to false, the content is removed.
+
+**Examples:**
+
+```html
+<!-- Simple content replacement -->
+<span data-tdal-content="username">Default username</span>
+
+<!-- String template -->
+<h1 data-tdal-content="STRING:Welcome, {user/name}!">Welcome!</h1>
+
+<!-- With fallback -->
+<div data-tdal-content="errorMessage | STRING:No errors">Error</div>
+
+<!-- Using a macro -->
+<div data-tdal-content="MACRO:userCard">User info</div>
+
+<!-- HTML content (not escaped) -->
+<div data-tdal-content="structure richTextContent">Default</div>
+```
+
+### data-tdal-replace
+
+Replaces the entire tag and its contents with the result of the expression. Accepts the same expressions as `data-tdal-content`. If the expression evaluates to false, the tag and its contents are removed.
+
+**Examples:**
+
+```html
+<!-- Replace tag with value -->
+<span data-tdal-replace="status">Status</span>
+
+<!-- String template replacement -->
+<span data-tdal-replace="STRING:<strong>{username}</strong>">Username</span>
+
+<!-- Using a macro -->
+<div data-tdal-replace="MACRO:navigationMenu">Nav</div>
+
+<!-- HTML content (not escaped) -->
+<div data-tdal-replace="structure htmlContent">Placeholder</div>
+```
+
+### data-tdal-attributes
+
+Sets or modifies tag attributes. Each pair follows the format `attribute expression`, separated by `;;`. Expressions can be paths, `STRING:` expressions, with optional `!` negation and `|` fallbacks. Append `?` to the attribute name for HTML5 boolean attributes: present when truthy, absent when falsy.
+
+**Examples:**
+
+```html
+<!-- Dynamic single attribute -->
+<a href="#" data-tdal-attributes="href user/profileUrl">Profile</a>
+
+<!-- String template attribute -->
+<img data-tdal-attributes="src STRING:https://example.com/{imageId}.jpg" />
+
+<!-- Multiple attributes -->
+<a data-tdal-attributes="href link/url;;class STRING:btn btn-{type}">Link</a>
+
+<!-- Boolean flag attributes -->
+<input type="checkbox" data-tdal-attributes="checked? user/isActive" />
+<button data-tdal-attributes="disabled? !canSubmit">Submit</button>
+<option data-tdal-attributes="selected? isDefault">Default</option>
+
+<!-- Mixed attributes -->
+<input data-tdal-attributes="type STRING:checkbox;;checked? isEnabled;;disabled? isLocked" />
+
+<!-- Fallback to preserve existing value -->
+<img src="default.jpg" data-tdal-attributes="src dynamicUrl | TRUE" />
+```
+
+### data-tdal-omittag
+
+Removes the tag wrapper while keeping its content when the expression evaluates to true. The expression can be a path with optional `!` negation, a `STRING:` expression, or a chain of fallbacks separated by `|`.
+
+**Examples:**
+
 ```html
 <!-- Always remove the tag -->
 <span data-tdal-omittag="TRUE">Content</span>
@@ -199,180 +352,46 @@ Removes the tag while keeping its content if the path expression evaluates to `t
 
 <!-- Remove tag if variable is falsy -->
 <span data-tdal-omittag="!showWrapper">Content</span>
-
-<!-- Remove tag based on nested path -->
-<span data-tdal-omittag="config/removeWrappers">Content</span>
 ```
-
-#### Attributes
-
-Adds or modifies multiple attributes based on the path expression. Each attribute-value pair is separated by `;;`. Existing attribute values are preserved if the expression evaluates to `true`.
-
-**Boolean Flag Attributes:**
-If an attribute name ends with `?`, it will be added as a boolean attribute (without value) when truthy, or removed when falsy.
-
-**Examples:**
-```html
-<!-- Keep existing attribute value -->
-<img src="default.jpg" data-tdal-attributes="src TRUE" />
-
-<!-- Replace with dynamic value -->
-<a href="#" data-tdal-attributes="href user/profileUrl">Profile</a>
-
-<!-- Use string template -->
-<img src="default.jpg" data-tdal-attributes="src STRING:https://example.com/images/{imageId}.jpg" />
-
-<!-- Remove attribute -->
-<input type="text" disabled data-tdal-attributes="disabled FALSE" />
-
-<!-- Boolean flag attributes (HTML5 boolean attributes) -->
-<input type="checkbox" data-tdal-attributes="checked? isChecked" />
-<button data-tdal-attributes="disabled? !canSubmit">Submit</button>
-<option data-tdal-attributes="selected? isDefault | FALSE">Default</option>
-
-<!-- Multiple attributes including flags -->
-<input data-tdal-attributes="type STRING:checkbox;;checked? user/preferences/newsletter;;disabled? !isEditable" />
-
-<!-- Multiple attributes -->
-<a data-tdal-attributes="href link/url;;class STRING:btn btn-{type};;title link/description">Link</a>
-
-<!-- Fallback to keeping existing value -->
-<img src="default.jpg" data-tdal-attributes="src dynamicUrl | TRUE" />
-```
-
-#### Content
-
-Replaces the tag's content with the result of the path expression. If the expression is false, the content is removed.
-
-**Examples:**
-```html
-<!-- Simple content replacement -->
-<span data-tdal-content="username">Default username</span>
-
-<!-- With HTML structure (not escaped) -->
-<div data-tdal-content="structure richTextContent">Default content</div>
-
-<!-- String template -->
-<h1 data-tdal-content="STRING:Welcome, {user/name}!">Welcome!</h1>
-
-<!-- Conditional content -->
-<div data-tdal-content="errorMessage | STRING:No errors">Error placeholder</div>
-
-<!-- Using macro -->
-<div data-tdal-content="MACRO:userCard">User info</div>
-```
-
-#### Replace
-
-Replaces the tag and its contents with the result of the path expression. If the expression is false, the tag and its contents are removed.
-
-**Examples:**
-```html
-<!-- Replace entire element with value -->
-<div data-tdal-replace="statusMessage">Status placeholder</div>
-
-<!-- Replace with HTML (not escaped) -->
-<div data-tdal-replace="structure htmlContent">Placeholder</div>
-
-<!-- String template replacement -->
-<span data-tdal-replace="STRING:<strong>{username}</strong>">Username</span>
-
-<!-- Using macro -->
-<div data-tdal-replace="MACRO:navigationMenu">Nav placeholder</div>
-```
-
-#### Condition
-
-Removes the tag and its contents if the path expression evaluates to `false`.
-
-**Examples:**
-```html
-<!-- Show if variable is truthy -->
-<div data-tdal-condition="isLoggedIn">Welcome back!</div>
-
-<!-- Show if variable is falsy -->
-<div data-tdal-condition="!isGuest">Member content</div>
-
-<!-- Always show -->
-<div data-tdal-condition="TRUE">Always visible</div>
-
-<!-- Never show -->
-<div data-tdal-condition="FALSE">Never visible</div>
-
-<!-- Check nested path -->
-<div data-tdal-condition="user/permissions/canEdit">Edit button</div>
-
-<!-- With fallback -->
-<div data-tdal-condition="feature/enabled | config/defaultEnabled">Feature content</div>
-```
-
-#### Repeat
-
-Repeats the tag for each element in an array or object. While iterating, a `REPEAT` object and the loop variable are available.
-
-**Examples:**
-```html
-<!-- Simple array iteration -->
-<ul>
-  <li data-tdal-repeat="item items" data-tdal-content="item">Item</li>
-</ul>
-
-<!-- Object iteration with properties -->
-<div data-tdal-repeat="user users">
-  <h3 data-tdal-content="user/name">Name</h3>
-  <p data-tdal-content="user/email">Email</p>
-</div>
-
-<!-- Using REPEAT variables -->
-<tr data-tdal-repeat="row data" data-tdal-attributes="class STRING:{?REPEAT/row/odd}odd{?/REPEAT/row/odd}{?REPEAT/row/even}even{?/REPEAT/row/even}">
-  <td data-tdal-content="REPEAT/row/number">Index</td>
-  <td data-tdal-content="row/value">Value</td>
-</tr>
-
-<!-- Nested repeats -->
-<div data-tdal-repeat="category categories">
-  <h2 data-tdal-content="category/name">Category</h2>
-  <ul>
-    <li data-tdal-repeat="product category/products" data-tdal-content="product/name">Product</li>
-  </ul>
-</div>
-```
-
-The `REPEAT` object provides:
-
-- `index`: Current index (or key for objects)
-- `number`: Current iteration, starting from 1
-- `even`, `odd`: Boolean flags for even/odd iterations
-- `first`, `last`: Boolean flags for the first/last element
-- `length`: Total items in the array or keys in the object
 
 ## Macros
 
-jTDAL support macros (equivalent of TAL's METAL or partials in Mustache) in content and replace.
+Macros are reusable template fragments (equivalent to TAL's METAL or Mustache partials). Register them with `MacroAdd`, then reference them using `MACRO:name` in `data-tdal-content` or `data-tdal-replace`.
 
-First you need to add your macro to the template:
+### Register a Macro
 
 ```javascript
-const macro = `Hello, <span data-tdal-replace="name|STRING:World"></span>!`;
-templateEngine.MacroAdd( "helloworld", macro );
+const templateEngine = new jTDAL();
+const macro = `Hello, <span data-tdal-replace="name | STRING:World"></span>!`;
+templateEngine.MacroAdd("helloworld", macro);
 ```
 
-Then you can call it from the template:
+### Use in Content
 
-#### Content
+Replaces the tag's inner content with the rendered macro:
 
 ```html
-<span data-tdal-content="MACRO:helloworld">Something</span>
-<span data-tdal-content="structure MACRO:helloworld">Something</span>
+<span data-tdal-content="MACRO:helloworld">Placeholder</span>
+<span data-tdal-content="structure MACRO:helloworld">Placeholder</span>
 ```
 
-Replaces the tag's content with the template foo
+### Use in Replace
 
-#### Replace
+Replaces the entire tag with the rendered macro:
 
 ```html
-<div data-tdal-replace="MACRO:helloworld">Replaced content</div>
-<div data-tdal-replace="structure MACRO:helloworld">Replaced content</div>
+<div data-tdal-replace="MACRO:helloworld">Placeholder</div>
+<div data-tdal-replace="structure MACRO:helloworld">Placeholder</div>
 ```
 
-Replaces the tag with the template foo
+### Macro Context
+
+Macros inherit the data context of the calling template:
+
+```html
+<div data-tdal-repeat="item items">
+  <div data-tdal-replace="MACRO:helloworld">Item</div>
+</div>
+```
+
+In this example, the `helloworld` macro accesses `item` within each loop iteration.

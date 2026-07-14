@@ -103,6 +103,13 @@ test.before(() => {
         const result = compiled(testData);
         t.is(result, expected);
     });
+    test(prefix + ': should handle STRING: expression as condition', (t) => {
+        const expected = '<div>Shown</div>';
+        const template = '<div data-tdal-condition="STRING:foo">Shown</div>';
+        const compiled = templateEngine.CompileToFunction(template);
+        const result = compiled({});
+        t.is(result, expected);
+    });
 }
 {
     prefix = 'data-tdal-repeat';
@@ -377,6 +384,19 @@ test.before(() => {
         const result = compiled(testData);
         t.is(result, expected);
     });
+    test(prefix + ': attribute values are not HTML-escaped', (t) => {
+        const template = '<a data-tdal-attributes="href url">Link</a>';
+        const compiled = templateEngine.CompileToFunction(template);
+        const result = compiled({ url: 'javascript:alert(1)" onclick="alert(2)' });
+        t.is(result, '<a href="javascript:alert(1)" onclick="alert(2)">Link</a>');
+    });
+    test(prefix + ': should handle namespaced attributes like xlink:href', (t) => {
+        const expected = '<use xlink:href="#b"/>';
+        const template = '<use xlink:href="#a" data-tdal-attributes="xlink:href STRING:#b" />';
+        const compiled = templateEngine.CompileToFunction(template);
+        const result = compiled(testData);
+        t.is(result, expected);
+    });
 }
 {
     prefix = 'data-tdal-omittag';
@@ -587,6 +607,27 @@ test.before(() => {
         const result = compiled(testData);
         t.is(result, expected);
     });
+    test(prefix + ': should handle > inside quoted attribute values', (t) => {
+        const expected = '<a title="1>2">link</a>';
+        const template = '<a title="1>2" data-tdal-condition="TRUE">link</a>';
+        const compiled = templateEngine.CompileToFunction(template);
+        const result = compiled(testData);
+        t.is(result, expected);
+    });
+    test(prefix + ': should handle > inside single-quoted attribute values', (t) => {
+        const expected = '<a title=\'1>2\'>link</a>';
+        const template = '<a title=\'1>2\' data-tdal-condition="TRUE">link</a>';
+        const compiled = templateEngine.CompileToFunction(template);
+        const result = compiled(testData);
+        t.is(result, expected);
+    });
+    test(prefix + ': should handle < inside quoted attribute values of nested tags', (t) => {
+        const expected = '<div><div title="a<b">x</div></div>';
+        const template = '<div data-tdal-condition="TRUE"><div title="a<b">x</div></div>';
+        const compiled = templateEngine.CompileToFunction(template);
+        const result = compiled(testData);
+        t.is(result, expected);
+    });
     test(prefix + ': should handle comments removal when strip is true', (t) => {
         const expected = '<div>Content</div>';
         const template = '<!-- Comment --><div>Content</div>';
@@ -668,28 +709,28 @@ test.before(() => {
             const expected = '<span>Default</span>';
             const template = '<span data-tdal-content="numberZero | STRING:Default">Original</span>';
             const compiled = templateEngine.CompileToFunction(template);
-            const result = compiled({ variableValue: undefined });
+            const result = compiled({ numberZero: 0 });
             t.is(result, expected);
         });
         test(prefix + ': when value is an empty string', (t) => {
             const expected = '<span>Default</span>';
             const template = '<span data-tdal-content="stringEmpty | STRING:Default">Original</span>';
             const compiled = templateEngine.CompileToFunction(template);
-            const result = compiled({ variableValue: undefined });
+            const result = compiled({ stringEmpty: '' });
             t.is(result, expected);
         });
         test(prefix + ': when value is an empty array', (t) => {
-            const expected = '<span>Default</span>';
+            const expected = '<span></span>';
             const template = '<span data-tdal-content="arrayEmpty | STRING:Default">Original</span>';
             const compiled = templateEngine.CompileToFunction(template);
-            const result = compiled({ variableValue: undefined });
+            const result = compiled({ arrayEmpty: [] });
             t.is(result, expected);
         });
         test(prefix + ': when value is an empty object', (t) => {
-            const expected = '<span>Default</span>';
+            const expected = '<span></span>';
             const template = '<span data-tdal-content="objectEmpty | STRING:Default">Original</span>';
             const compiled = templateEngine.CompileToFunction(template);
-            const result = compiled({ variableValue: undefined });
+            const result = compiled({ objectEmpty: {} });
             t.is(result, expected);
         });
     }

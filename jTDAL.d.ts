@@ -7,6 +7,7 @@ export default class jTDAL {
     private static readonly _regexpPatternPathBoolean;
     private static readonly _regexpPatternExpressionAllowedBoolean;
     private static readonly _regexpPatternExpressionAllowedBooleanMacro;
+    private static readonly _regexpPatternTagAttributes;
     private static readonly _regexpTagWithTDAL;
     private static readonly _regexpTagAttributes;
     private static readonly _regexpPathString;
