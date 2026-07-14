@@ -9,7 +9,7 @@ export default class jTDAL {
     static _regexpPatternExpressionAllowedBooleanMacro = '(?:' + jTDAL._regexpPatternMacro + '|' + jTDAL._regexpPatternString + '|' + jTDAL._regexpPatternPathBoolean + '(?:[\\s]*\\|[\\s]*' + jTDAL._regexpPatternString + ')?)';
     static _regexpTagWithTDAL = new RegExp('<((?:\\w+:)?\\w+)(\\s+[^<>]+?)??\\s+\\bdata-tdal-(?:' + jTDAL._keywords.join('|') +
         ')\\b=([\'"])(.*?)\\3(\\s+[^<>]+?)??\\s*(\/)?>', 'i');
-    static _regexpTagAttributes = /\s((?:[\w-]+:)?[\w-]+)=(?:(['"])(.*?)\2|([^>\s'"]+))/gi;
+    static _regexpTagAttributes = /\s((?:[\w-]+:)?[\w-]+)(?:=(?:(['"])(.*?)\2|([^>\s'"]+)))?(?=\s|\/?>)/gi;
     static _regexpPathString = new RegExp('(?:{(' + jTDAL._regexpPatternPath + ')}|{\\?(' + jTDAL._regexpPatternPathBoolean + ')}(.*?){\\/\\2})');
     static _regexpCondition = new RegExp('^[\\s]*(' + jTDAL._regexpPatternExpressionAllowedBoolean + ')[\\s]*$');
     static _regexpRepeat = new RegExp('^[\\s]*([\\w\\-]+?)[\\s]+(' + jTDAL._regexpPatternPath + ')[\\s]*$');
@@ -271,7 +271,7 @@ export default class jTDAL {
                                 current[2] += `+(${tmpValue}?" ${tmpMatch[1]}":""`;
                             }
                             else {
-                                current[2] += `+(a(${tmpValue})&&((t[t[0]]&&"string"===typeof t[t[0]])||("number"===typeof t[t[0]]&&!isNaN(t[t[0]])))?" ${tmpMatch[1]}=\\""+t[t[0]]+"\\"":( true !== t[t[0]]?"":"${tmpMatch[1]}"`;
+                                current[2] += `+(a(${tmpValue})&&((t[t[0]]&&"string"===typeof t[t[0]])||("number"===typeof t[t[0]]&&!isNaN(t[t[0]])))?" ${tmpMatch[1]}=\\""+t[t[0]]+"\\"":( true !== t[t[0]]?"":" ${tmpMatch[1]}"`;
                             }
                             if (undefined !== attributes[tmpMatch[1]]) {
                                 current[1] = current[1].replace(new RegExp('\\s*\\b' + tmpMatch[1] + '\\b(?:=([\'"]).*?\\1)?(?=\\s|\\/?>)'), '');

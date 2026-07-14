@@ -89,6 +89,20 @@ test.before(() => {
         const result = compiled(testData);
         t.is(result, expected);
     });
+    test(prefix + ': should handle negation of FALSE keyword (!FALSE)', (t) => {
+        const expected = '<div>Always shown</div>';
+        const template = '<div data-tdal-condition="!FALSE">Always shown</div>';
+        const compiled = templateEngine.CompileToFunction(template);
+        const result = compiled(testData);
+        t.is(result, expected);
+    });
+    test(prefix + ': should handle negation of TRUE keyword (!TRUE)', (t) => {
+        const expected = '';
+        const template = '<div data-tdal-condition="!TRUE">Never shown</div>';
+        const compiled = templateEngine.CompileToFunction(template);
+        const result = compiled(testData);
+        t.is(result, expected);
+    });
 }
 {
     prefix = 'data-tdal-repeat';
@@ -127,6 +141,13 @@ test.before(() => {
         const result = compiled(testData);
         t.is(result, expected);
     });
+    test(prefix + ': should handle negated REPEAT variable in condition', (t) => {
+        const expected = '<li>Not first</li><li>Not first</li>';
+        const template = '<li data-tdal-repeat="item arrayStrings" data-tdal-omittag="REPEAT/item/first"><span data-tdal-condition="!REPEAT/item/first" data-tdal-omittag="TRUE">Not first</span></li>';
+        const compiled = templateEngine.CompileToFunction(template);
+        const result = compiled(testData);
+        t.is(result, expected);
+    });
     test(prefix + ': should handle empty arrays', (t) => {
         const expected = '';
         const template = '<li data-tdal-repeat="item arrayEmpty" data-tdal-content="item">Default</li>';
@@ -137,6 +158,20 @@ test.before(() => {
     test(prefix + ': should handle missing repeat variable', (t) => {
         const expected = '';
         const template = '<li data-tdal-repeat="item missingArray" data-tdal-content="item">Default</li>';
+        const compiled = templateEngine.CompileToFunction(template);
+        const result = compiled(testData);
+        t.is(result, expected);
+    });
+    test(prefix + ': should handle static TRUE value (empty output)', (t) => {
+        const expected = '';
+        const template = '<li data-tdal-repeat="item TRUE">Content</li>';
+        const compiled = templateEngine.CompileToFunction(template);
+        const result = compiled(testData);
+        t.is(result, expected);
+    });
+    test(prefix + ': should handle static FALSE value (empty output)', (t) => {
+        const expected = '';
+        const template = '<li data-tdal-repeat="item FALSE">Content</li>';
         const compiled = templateEngine.CompileToFunction(template);
         const result = compiled(testData);
         t.is(result, expected);
@@ -209,6 +244,20 @@ test.before(() => {
             const result = compiled({ variableFlag: false });
             t.is(result, expected);
         });
+        test(prefix + ' with static TRUE keyword', (t) => {
+            const expected = '<span>Hello World!</span>';
+            const template = '<span data-tdal-content="STRING:Hello {?TRUE}World{/TRUE}!">Default</span>';
+            const compiled = templateEngine.CompileToFunction(template);
+            const result = compiled(testData);
+            t.is(result, expected);
+        });
+        test(prefix + ' with static FALSE keyword', (t) => {
+            const expected = '<span>Hello !</span>';
+            const template = '<span data-tdal-content="STRING:Hello {?FALSE}World{/FALSE}!">Default</span>';
+            const compiled = templateEngine.CompileToFunction(template);
+            const result = compiled(testData);
+            t.is(result, expected);
+        });
     }
 }
 {
@@ -237,6 +286,13 @@ test.before(() => {
     test(prefix + ': should remove element when value is false', (t) => {
         const expected = '';
         const template = '<span data-tdal-replace="missing">Default</span>';
+        const compiled = templateEngine.CompileToFunction(template);
+        const result = compiled(testData);
+        t.is(result, expected);
+    });
+    test(prefix + ': should remove element with static FALSE', (t) => {
+        const expected = '';
+        const template = '<span data-tdal-replace="FALSE">Default content</span>';
         const compiled = templateEngine.CompileToFunction(template);
         const result = compiled(testData);
         t.is(result, expected);
@@ -296,6 +352,27 @@ test.before(() => {
     test(prefix + ': if attribute STRING value is empty, remove it', (t) => {
         const expected = '<a>Link</a>';
         const template = '<a data-tdal-attributes="href STRING:{stringEmpty}" href="http://www.example.org">Link</a>';
+        const compiled = templateEngine.CompileToFunction(template);
+        const result = compiled(testData);
+        t.is(result, expected);
+    });
+    test(prefix + ': should handle flag attribute with dynamic true condition', (t) => {
+        const expected = '<input disabled/>';
+        const template = '<input data-tdal-attributes="disabled? booleanTrue" />';
+        const compiled = templateEngine.CompileToFunction(template);
+        const result = compiled(testData);
+        t.is(result, expected);
+    });
+    test(prefix + ': should handle flag attribute with dynamic false condition', (t) => {
+        const expected = '<input/>';
+        const template = '<input data-tdal-attributes="disabled? booleanFalse" />';
+        const compiled = templateEngine.CompileToFunction(template);
+        const result = compiled(testData);
+        t.is(result, expected);
+    });
+    test(prefix + ': should handle existing attribute without value', (t) => {
+        const expected = '<input disabled/>';
+        const template = '<input disabled data-tdal-attributes="disabled booleanTrue" />';
         const compiled = templateEngine.CompileToFunction(template);
         const result = compiled(testData);
         t.is(result, expected);
@@ -365,6 +442,15 @@ test.before(() => {
         const expected = '<div></div>';
         const template = '<div data-tdal-content="MACRO:nonexistent">Default</div>';
         const compiled = templateEngine.CompileToFunction(template);
+        const result = compiled(testData);
+        t.is(result, expected);
+    });
+    test(prefix + ': should preserve comments in macro when strip is false', (t) => {
+        const noStripEngine = new jTDAL(true, false);
+        const expected = '<div><!-- comment --><b>Hello</b></div>';
+        noStripEngine.MacroAdd('withcomment', '<!-- comment --><b>Hello</b>');
+        const template = '<div data-tdal-content="structure MACRO:withcomment">Default</div>';
+        const compiled = noStripEngine.CompileToFunction(template);
         const result = compiled(testData);
         t.is(result, expected);
     });
@@ -483,6 +569,20 @@ test.before(() => {
     test(prefix + ': should handle HTML5 void elements', (t) => {
         const expected = '<br/>';
         const template = '<br data-tdal-condition="TRUE">';
+        const compiled = templateEngine.CompileToFunction(template);
+        const result = compiled(testData);
+        t.is(result, expected);
+    });
+    test(prefix + ': should handle unclosed tags gracefully', (t) => {
+        const expected = '<div/>Content';
+        const template = '<div data-tdal-condition="TRUE">Content';
+        const compiled = templateEngine.CompileToFunction(template);
+        const result = compiled(testData);
+        t.is(result, expected);
+    });
+    test(prefix + ': should convert void element to non-void when content is added', (t) => {
+        const expected = '<input>Hello World</input>';
+        const template = '<input data-tdal-content="string" />';
         const compiled = templateEngine.CompileToFunction(template);
         const result = compiled(testData);
         t.is(result, expected);
@@ -647,5 +747,30 @@ test.before(() => {
         const compiled = templateEngine.CompileToFunction(template);
         const result = compiled(testData);
         t.is(result, expected);
+    });
+    test(prefix + ': should handle negated GLOBAL paths in condition', (t) => {
+        const expected = '';
+        const template = '<span data-tdal-condition="!GLOBAL/booleanTrue">Hidden</span>';
+        const compiled = templateEngine.CompileToFunction(template);
+        const result = compiled(testData);
+        t.is(result, expected);
+    });
+    test(prefix + ': should handle GLOBAL paths in condition', (t) => {
+        const expected = '<span>Shown</span>';
+        const template = '<span data-tdal-condition="GLOBAL/booleanTrue">Shown</span>';
+        const compiled = templateEngine.CompileToFunction(template);
+        const result = compiled(testData);
+        t.is(result, expected);
+    });
+}
+{
+    prefix = 'Internal methods';
+    test(prefix + ': _ParsePath should return false for empty path', (t) => {
+        const result = jTDAL._ParsePath('');
+        t.is(result, 'false');
+    });
+    test(prefix + ': _ParsePath should return false for null path', (t) => {
+        const result = jTDAL._ParsePath(null);
+        t.is(result, 'false');
     });
 }
