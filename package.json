@@ -1,12 +1,12 @@
 {
   "name": "@stefanobalocco/jtdal",
   "description": "Small template engine based on Zope TAL, using data attributes",
-	"exports": {
-		".": {
-			"types": "./jTDAL.d.ts",
-			"default": "./jTDAL.min.js"
-		}
-	},
+  "exports": {
+    ".": {
+      "types": "./jTDAL.d.ts",
+      "default": "./jTDAL.min.js"
+    }
+  },
   "types": "jTDAL.d.ts",
   "files": [
     "jTDAL.js",
@@ -27,7 +27,7 @@
     "type": "git",
     "url": "https://github.com/StefanoBalocco/jTDAL.git"
   },
-  "version": "5.1.0",
+  "version": "5.1.1",
   "keywords": [
     "template engine",
     "tal"
@@ -45,6 +45,7 @@
     "tests": "c8 --reporter=text --reporter=lcov ava *.test.js --verbose --serial"
   },
   "devDependencies": {
+    "@stefanobalocco/tersercompanion": "~1",
     "ava": "~6",
     "c8": "~12",
     "terser": "~5",
