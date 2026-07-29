@@ -1,8 +1,11 @@
 {
   "compilerOptions": {
+    "rootDir": "./src",
+    "outDir": "./dist",
     "target": "esnext",
     "module": "esnext",
     "moduleResolution": "bundler",
+    "sourceMap": true,
     "declaration": true,
     "removeComments": true,
     "strict": true,
@@ -17,6 +20,6 @@
     "allowSyntheticDefaultImports": true
   },
   "files": [
-    "jTDAL.ts"
+    "src/jTDAL.ts"
   ]
 }

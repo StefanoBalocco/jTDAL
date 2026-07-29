@@ -1,6 +1,6 @@
 import test from 'ava';
-import jTDALOriginal from './jTDAL.js';
-import jTDALMinified from './jTDAL.min.js';
+import jTDALOriginal from '../../dist/jTDAL.js';
+import jTDALMinified from '../../dist/jTDAL.min.js';
 const targets = [
     {
         tag: '[jTDAL-original]',

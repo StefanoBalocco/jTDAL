@@ -15,7 +15,7 @@
 
 [![npm](https://img.shields.io/npm/v/%40stefanobalocco%2Fjtdal.svg)](https://www.npmjs.com/package/@stefanobalocco/jtdal)
 [![License](https://img.shields.io/github/license/stefanobalocco/jTDAL)](https://github.com/StefanoBalocco/jTDAL/blob/master/LICENSE)
-![GZipped size](https://img.badgesize.io/stefanobalocco/jTDAL/master/jTDAL.min.js?compression=gzip)
+![GZipped size](https://img.badgesize.io/stefanobalocco/jTDAL/master/dist/jTDAL.min.js?compression=gzip)
 
 Small template engine based on Zope TAL, using data attributes.
 
@@ -37,7 +37,7 @@ I wanted a fast, attribute-based JavaScript template engine and couldn't find on
 
 ```html
 <script type="module">
-    import jTDAL from 'https://unpkg.com/@stefanobalocco/jtdal/jTDAL.min.js';
+    import jTDAL from 'https://unpkg.com/@stefanobalocco/jtdal/dist/jTDAL.min.js';
 
     const templateEngine = new jTDAL();
     const template = '<span data-tdal-content="message">placeholder</span>';

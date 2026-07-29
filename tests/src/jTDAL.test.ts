@@ -1,7 +1,7 @@
 import test from 'ava';
-import jTDALOriginal from './jTDAL.js';
+import jTDALOriginal from '../../dist/jTDAL.js';
 // @ts-expect-error jTDAL.min.js intentionally shares the original public API.
-import jTDALMinified from './jTDAL.min.js';
+import jTDALMinified from '../../dist/jTDAL.min.js';
 
 const targets: readonly { tag: string; jTDAL: typeof jTDALOriginal; }[] = [
 	{

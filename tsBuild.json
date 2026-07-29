@@ -1,0 +1,19 @@
+[
+	{
+		"target": "tool",
+		"tsConfig": "tsconfig.json",
+		"name": "Tool",
+		"minify": {
+			"files": [
+				"dist/jTDAL.js"
+			],
+			"terser": true,
+			"terserCompanion": true
+		}
+	},
+	{
+		"target": "tests",
+		"tsConfig": "tests/tsconfig.json",
+		"name": "Tests"
+	}
+]

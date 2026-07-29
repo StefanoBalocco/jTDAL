@@ -366,3 +366,4 @@ export default class jTDAL {
         return 'function(d){' + this._Compile(template) + '}';
     }
 }
+//# sourceMappingURL=jTDAL.js.map
