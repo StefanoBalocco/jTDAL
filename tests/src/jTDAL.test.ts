@@ -123,6 +123,27 @@ for( const target of targets ) {
 			t.is( result, expected );
 		} );
 
+
+		test( prefix + ': static FALSE should not stop parsing following TDAL elements', ( t ) => {
+			const expected: string = '<span>Hello World</span>';
+			const template: string = 
+					'<div data-tdal-condition="FALSE">Never shown</div>' +
+					'<span data-tdal-content="string">Default</span>';
+			const compiled = templateEngine.CompileToFunction( template );
+			const result: string = compiled( testData );
+			t.is( result, expected );
+		} );
+
+		test( prefix + ': static FALSE should not prevent following repeat from being parsed', ( t ) => {
+			const expected: string = '<li>A</li><li>B</li><li>C</li>';
+			const template: string =
+				'<div data-tdal-condition="FALSE">Never shown</div>' +
+				'<li data-tdal-repeat="item arrayStrings" data-tdal-content="item">Default</li>';
+			const compiled = templateEngine.CompileToFunction( template );
+			const result: string = compiled( testData );
+			t.is( result, expected );
+		} );
+
 		test( prefix + ': should handle negation of FALSE keyword (!FALSE)', ( t ) => {
 			const expected: string = '<div>Always shown</div>';
 			const template: string = '<div data-tdal-condition="!FALSE">Always shown</div>';
