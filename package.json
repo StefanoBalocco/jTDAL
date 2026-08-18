@@ -27,7 +27,7 @@
     "type": "git",
     "url": "https://github.com/StefanoBalocco/jTDAL.git"
   },
-  "version": "5.1.1",
+  "version": "5.1.2",
   "keywords": [
     "template engine",
     "tal"
@@ -45,10 +45,10 @@
     "tests": "c8 --reporter=text --reporter=lcov ava *.test.js --verbose --serial"
   },
   "devDependencies": {
-    "@stefanobalocco/tersercompanion": "~1",
-    "ava": "~6",
-    "c8": "~12",
-    "terser": "~5",
-    "typescript": "~6"
+    "@stefanobalocco/tersercompanion": "^1",
+    "ava": "^6",
+    "c8": "^12",
+    "terser": "^5",
+    "typescript": "^6"
   }
 }
