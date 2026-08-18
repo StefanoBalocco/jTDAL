@@ -19,7 +19,7 @@
     "type": "git",
     "url": "https://github.com/StefanoBalocco/jTDAL.git"
   },
-  "version": "5.0.4",
+  "version": "5.0.5",
   "keywords": [
     "template engine",
     "tal"
@@ -37,9 +37,9 @@
     "tests": "npx ava *.test.js --verbose"
   },
   "devDependencies": {
-    "ava": "~6",
-    "c8": "~10",
-    "terser": "~5",
-    "typescript": "~5"
+    "ava": "^6",
+    "c8": "^10",
+    "terser": "^5",
+    "typescript": "^6"
   }
 }
