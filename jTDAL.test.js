@@ -86,6 +86,22 @@ test.before(() => {
         const result = compiled(testData);
         t.is(result, expected);
     });
+    test(prefix + ': static FALSE should not stop parsing following TDAL elements', (t) => {
+        const expected = '<span>Hello World</span>';
+        const template = '<div data-tdal-condition="FALSE">Never shown</div>' +
+            '<span data-tdal-content="string">Default</span>';
+        const compiled = templateEngine.CompileToFunction(template);
+        const result = compiled(testData);
+        t.is(result, expected);
+    });
+    test(prefix + ': static FALSE should not prevent following repeat from being parsed', (t) => {
+        const expected = '<li>A</li><li>B</li><li>C</li>';
+        const template = '<div data-tdal-condition="FALSE">Never shown</div>' +
+            '<li data-tdal-repeat="item arrayStrings" data-tdal-content="item">Default</li>';
+        const compiled = templateEngine.CompileToFunction(template);
+        const result = compiled(testData);
+        t.is(result, expected);
+    });
 }
 {
     prefix = 'data-tdal-repeat';

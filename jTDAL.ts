@@ -186,6 +186,7 @@ export default class jTDAL {
 					template = template.substring( closingPosition[ 0 ] + closingPosition[ 1 ] );
 				}
 			}
+			let printElement: boolean = true;
 			tdal: {
 				let tmpMatch: Nullable<RegExpExecArray>;
 				let tmpValue: string;
@@ -194,7 +195,8 @@ export default class jTDAL {
 					tmpValue = jTDAL._ParsePath( attributes[ attribute ][ 3 ], true, this._macros );
 					if( 'false' === tmpValue ) {
 						// the tag (and it's content) should be removed
-						break;
+						printElement = false;
+						break tdal;
 					} else if( 'true' !== tmpValue ) {
 						current[ 0 ] += '+(true===' + tmpValue + '?""';
 						current[ 7 ] = ':"")' + current[ 7 ];
@@ -205,7 +207,8 @@ export default class jTDAL {
 					tmpValue = jTDAL._ParsePath( tmpMatch[ 2 ], false, this._macros );
 					if( ( 'false' == tmpValue ) || ( '""' == tmpValue ) || ( 'true' == tmpValue ) ) {
 						// 0 repetitions, same as condition false
-						break;
+						printElement = false;
+						break tdal;
 					} else {
 						current[ 0 ] += '+(';
 						current[ 0 ] += '((';
@@ -305,15 +308,17 @@ export default class jTDAL {
 					}
 				}
 			}
-			current[ 1 ] = current[ 1 ].replace( /\s*\/?>$/, '' );
-			if( selfClosed && ( ( '' != current[ 4 ] ) || ( '' != current[ 3 ] ) || ( '' != current[ 5 ] ) ) ) {
-				// if is a tag selfclosed, and if it has contents, I should close it
-				current[ 6 ] = '</' + tmpTDALTags[ 1 ] + '>';
-				selfClosed = false;
+			if( printElement ) {
+				current[ 1 ] = current[ 1 ].replace( /\s*\/?>$/, '' );
+				if( selfClosed && ( ( '' != current[ 4 ] ) || ( '' != current[ 3 ] ) || ( '' != current[ 5 ] ) ) ) {
+					// if is a tag selfclosed, and if it has contents, I should close it
+					current[ 6 ] = '</' + tmpTDALTags[ 1 ] + '>';
+					selfClosed = false;
+				}
+				returnValue += current[ 0 ] + '+' + JSON.stringify( String( current[ 1 ] ) ) + current[ 2 ] +
+							( ( '' != current[ 1 ] ) ? '+"' + ( selfClosed ? '/' : '' ) + '>"' : '' ) + current[ 3 ] + current[ 4 ] + current[ 5 ] + '+' +
+							JSON.stringify( String( current[ 6 ] ) ) + current[ 7 ];
 			}
-			returnValue += current[ 0 ] + '+' + JSON.stringify( String( current[ 1 ] ) ) + current[ 2 ] +
-										 ( ( '' != current[ 1 ] ) ? '+"' + ( selfClosed ? '/' : '' ) + '>"' : '' ) + current[ 3 ] + current[ 4 ] + current[ 5 ] + '+' +
-										 JSON.stringify( String( current[ 6 ] ) ) + current[ 7 ];
 		}
 		returnValue += '+' + JSON.stringify( String( template ) );
 		return returnValue;
