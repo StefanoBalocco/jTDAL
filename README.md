@@ -1,3 +1,11 @@
+> **Deprecated:** This package has moved to [`@stefanobalocco/jtdal`](https://www.npmjs.com/package/@stefanobalocco/jtdal).
+>
+> Install the scoped package instead:
+>
+> ```sh
+> npm install @stefanobalocco/jtdal
+> ```
+
 ```html
 <div>
   Hello there, <span data-tdal-replace="name">world</span>
