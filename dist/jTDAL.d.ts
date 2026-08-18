@@ -1,4 +1,4 @@
-type TemplateEngine = (data: any) => string;
+export type TemplateEngine = (data: any) => string;
 export default class jTDAL {
     private static readonly _keywords;
     private static readonly _regexpPatternPath;
@@ -16,10 +16,17 @@ export default class jTDAL {
     private static readonly _regexpContent;
     private static readonly _regexpAttributes;
     private static readonly _regexpAttributesTDAL;
+    private static readonly _regexpTrimStart;
+    private static readonly _regexpTrimEnd;
+    private static readonly _regexpTagEnd;
+    private static readonly _regexpMacroName;
+    private static readonly _regexpGeneratedRepeat;
+    private static readonly _regexpGeneratedMacro;
+    private static readonly _regexpGeneratedConcatenation;
     private static readonly _HTML5VoidElements;
+    private readonly _trim;
+    private readonly _strip;
     private _macros;
-    private _trim;
-    private _strip;
     private static _ParseString;
     private static _ParsePath;
     constructor(trim?: boolean, strip?: boolean);
@@ -29,4 +36,3 @@ export default class jTDAL {
     CompileToFunction(template: string): TemplateEngine;
     CompileToString(template: string): string;
 }
-export {};

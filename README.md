@@ -167,17 +167,19 @@ Placeholders are replaced with resolved path values.
 
 **Conditional Inclusion:**
 
-Use `{?condition}...{/condition}` to conditionally include text:
+Use `{?condition}...{/?}` to conditionally include text:
 
 ```plaintext
-STRING:Hello {name}{?user/isPremium} (Premium){/user/isPremium}
+STRING:Hello {name}{?user/isPremium} (Premium){/?}
 ```
 
-Use `{?!condition}...{/!condition}` to negate:
+Use `{?!condition}...{/?}` to negate:
 
 ```plaintext
-STRING:Status: {?!isActive}Inactive{/!isActive}{?isActive}Active{/isActive}
+STRING:Status: {?!isActive}Inactive{/?}{?isActive}Active{/?}
 ```
+
+An unclosed conditional tag or an unmatched `{/?}` causes a compile-time error.
 
 ## Attributes
 
