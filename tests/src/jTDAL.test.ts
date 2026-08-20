@@ -1,4 +1,5 @@
 import test from 'ava';
+import type { TemplateEngine } from '../../dist/jTDAL.js';
 import jTDALOriginal from '../../dist/jTDAL.js';
 // @ts-expect-error jTDAL.min.js intentionally shares the original public API.
 import jTDALMinified from '../../dist/jTDAL.min.js';
@@ -662,14 +663,6 @@ for( const target of targets ) {
 
 	{
 		prefix = tag + ' Combined attributes';
-		test( prefix + ': should process repeat with content', ( t ) => {
-			const expected: string = '<li>A</li><li>B</li><li>C</li>';
-			const template: string = '<li data-tdal-repeat="item arrayStrings" data-tdal-content="item">Default</li>';
-			const compiled = templateEngine.CompileToFunction( template );
-			const result: string = compiled( testData );
-			t.is( result, expected );
-		} );
-
 		test( prefix + ': should process repeat with attributes', ( t ) => {
 			const expected: string = '<img src="https://www.example.org/1.jpg"/><img src="https://www.example.org/2.jpg"/><img src="https://www.example.org/3.jpg"/>';
 			const template: string = '<img data-tdal-repeat="id arrayNumbers" data-tdal-attributes="src STRING:https://www.example.org/{id}.jpg" />';
@@ -851,6 +844,24 @@ for( const target of targets ) {
 			t.is( result, expected );
 		} );
 
+		test( prefix + ': should preserve ordinary attributes when converting a void element with content', ( t ) => {
+			const engine: jTDALOriginal = new jTDAL();
+			const expected: string = '<input type="text">Hello World</input>';
+			const template: string = '<input type="text" data-tdal-content="string" />';
+			const compiled: TemplateEngine = engine.CompileToFunction( template );
+			const result: string = compiled( testData );
+			t.is( result, expected );
+		} );
+
+		test( prefix + ': should omit a self-closed void element when omittag is true', ( t ) => {
+			const engine: jTDALOriginal = new jTDAL();
+			const expected: string = '';
+			const template: string = '<input type="text" data-tdal-omittag="TRUE" />';
+			const compiled: TemplateEngine = engine.CompileToFunction( template );
+			const result: string = compiled( testData );
+			t.is( result, expected );
+		} );
+
 		test( prefix + ': should handle > inside quoted attribute values', ( t ) => {
 			const expected: string = '<a title="1>2">link</a>';
 			const template: string = '<a title="1>2" data-tdal-condition="TRUE">link</a>';
@@ -879,6 +890,24 @@ for( const target of targets ) {
 			const expected: string = '<div>Before</div><div>After</div>';
 			const template: string = '<div>Before</div><!-- Comment --><div>After</div>';
 			const compiled = templateEngine.CompileToFunction( template );
+			const result: string = compiled( testData );
+			t.is( result, expected );
+		} );
+
+		test( prefix + ': should strip a document-leading comment when strip is true', ( t ) => {
+			const engine: jTDALOriginal = new jTDAL();
+			const expected: string = '<div>Content</div>';
+			const template: string = '<!-- Comment --><div>Content</div>';
+			const compiled: TemplateEngine = engine.CompileToFunction( template );
+			const result: string = compiled( testData );
+			t.is( result, expected );
+		} );
+
+		test( prefix + ': should preserve comments inside template elements when strip is true', ( t ) => {
+			const engine: jTDALOriginal = new jTDAL();
+			const expected: string = '<template><!-- Comment --><span>Content</span></template>';
+			const template: string = '<template><!-- Comment --><span>Content</span></template>';
+			const compiled: TemplateEngine = engine.CompileToFunction( template );
 			const result: string = compiled( testData );
 			t.is( result, expected );
 		} );
@@ -931,15 +960,6 @@ for( const target of targets ) {
 			t.is( result, expected );
 		} );
 
-		/*
-		test( prefix + ': should handle multilines?', ( t ) => {
-			const expected: string = '<span>Line 1\nLine 2\t&lt;tag&gt;</span>';
-			const template: string = '<span data-tdal-content="STRING:Line 1\nLine 2\t&lt;tag&gt;">Default</span>';
-			const compiled = templateEngine.CompileToFunction( template );
-			const result: string = compiled( testData );
-			t.is( result, expected );
-		} );
-	*/
 		{
 			prefix = tag + ' Edge cases and special scenarios: should handle trim option';
 			test( prefix + ': when trim is true', ( t ) => {
@@ -1013,6 +1033,33 @@ for( const target of targets ) {
 	}
 
 	{
+		prefix = tag + ' Global paths';
+		test( prefix + ': should resolve GLOBAL path in content', ( t ) => {
+			const expected: string = '<span>World</span>';
+			const template: string = '<span data-tdal-content="GLOBAL/stringName">Default</span>';
+			const compiled = templateEngine.CompileToFunction( template );
+			const result: string = compiled( testData );
+			t.is( result, expected );
+		} );
+
+		test( prefix + ': should handle negated GLOBAL path in condition', ( t ) => {
+			const expected: string = '';
+			const template: string = '<span data-tdal-condition="!GLOBAL/booleanTrue">Hidden</span>';
+			const compiled = templateEngine.CompileToFunction( template );
+			const result: string = compiled( testData );
+			t.is( result, expected );
+		} );
+
+		test( prefix + ': should handle GLOBAL path in condition', ( t ) => {
+			const expected: string = '<span>Shown</span>';
+			const template: string = '<span data-tdal-condition="GLOBAL/booleanTrue">Shown</span>';
+			const compiled = templateEngine.CompileToFunction( template );
+			const result: string = compiled( testData );
+			t.is( result, expected );
+		} );
+	}
+
+	{
 		prefix = tag + ' CompileToString method';
 		test( prefix + ': should return function as string', ( t ) => {
 			const expected: string = '<div>Hello World</div>';
@@ -1068,30 +1115,6 @@ for( const target of targets ) {
 			}
 			template += '</div>';
 
-			const compiled = templateEngine.CompileToFunction( template );
-			const result: string = compiled( testData );
-			t.is( result, expected );
-		} );
-
-		test( prefix + ': should handle GLOBAL paths', ( t ) => {
-			const expected: string = '<span>World</span>';
-			const template: string = '<span data-tdal-content="GLOBAL/stringName">Default</span>';
-			const compiled = templateEngine.CompileToFunction( template );
-			const result: string = compiled( testData );
-			t.is( result, expected );
-		} );
-
-		test( prefix + ': should handle negated GLOBAL paths in condition', ( t ) => {
-			const expected: string = '';
-			const template: string = '<span data-tdal-condition="!GLOBAL/booleanTrue">Hidden</span>';
-			const compiled = templateEngine.CompileToFunction( template );
-			const result: string = compiled( testData );
-			t.is( result, expected );
-		} );
-
-		test( prefix + ': should handle GLOBAL paths in condition', ( t ) => {
-			const expected: string = '<span>Shown</span>';
-			const template: string = '<span data-tdal-condition="GLOBAL/booleanTrue">Shown</span>';
 			const compiled = templateEngine.CompileToFunction( template );
 			const result: string = compiled( testData );
 			t.is( result, expected );

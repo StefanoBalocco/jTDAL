@@ -127,7 +127,8 @@ export default class jTDAL {
           iL1 = cL1;
         } else if( currentPath.startsWith( 'MACRO:' ) ) {
           if( undefined !== macros[ currentPath.substring( 6 ) ] ) {
-            returnValue += ( boolPath ? 'b(' : '' ) + 'm["' + currentPath.substring( 6 ) + '"]()' + ( boolPath ? ')' : '' );
+            // Public grammar permits MACRO: only in content and replace expressions.
+            returnValue += 'm["' + currentPath.substring( 6 ) + '"]()';
           } else {
             returnValue += 'false';
           }

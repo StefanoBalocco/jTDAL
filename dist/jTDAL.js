@@ -108,7 +108,7 @@ export default class jTDAL {
                 }
                 else if (currentPath.startsWith('MACRO:')) {
                     if (undefined !== macros[currentPath.substring(6)]) {
-                        returnValue += (boolPath ? 'b(' : '') + 'm["' + currentPath.substring(6) + '"]()' + (boolPath ? ')' : '');
+                        returnValue += 'm["' + currentPath.substring(6) + '"]()';
                     }
                     else {
                         returnValue += 'false';
