@@ -166,6 +166,17 @@ for( const target of targets ) {
 			const result: string = compiled( {} );
 			t.is( result, expected );
 		} );
+
+		test( prefix + ': should apply TDAL truthiness to empty and sparse containers', ( t ) => {
+			const template: string = '<span data-tdal-condition="value">Shown</span>';
+			const compiled: ReturnType<typeof templateEngine.CompileToFunction> = templateEngine.CompileToFunction( template );
+			const sparseArray: string[] = new Array<string>( 3 );
+
+			t.is( compiled( { value: {} } ), '' );
+			t.is( compiled( { value: [] } ), '' );
+			t.is( compiled( { value: [ 'item' ] } ), '<span>Shown</span>' );
+			t.is( compiled( { value: sparseArray } ), '<span>Shown</span>' );
+		} );
 	}
 
 	{
@@ -248,6 +259,46 @@ for( const target of targets ) {
 			const compiled = templateEngine.CompileToFunction( template );
 			const result: string = compiled( testData );
 			t.is( result, expected );
+		} );
+
+		test( prefix + ': should retry a TDAL-empty local boolean path against global data', ( t ) => {
+			const expected: string = '<ul><li>Shown</li></ul>';
+			const template: string = '<ul data-tdal-repeat="item items"><li data-tdal-condition="item/value">Shown</li></ul>';
+			const data: { items: { value: Record<string, never>; }[]; item: { value: boolean; }; } = {
+				items: [ { value: {} } ],
+				item: { value: true }
+			};
+			const compiled: ReturnType<typeof templateEngine.CompileToFunction> = templateEngine.CompileToFunction( template );
+			const result: string = compiled( data );
+			t.is( result, expected );
+		} );
+
+		test( prefix + ': should not retry REPEAT boolean paths against global data', ( t ) => {
+			const expected: string = '<ul></ul>';
+			const template: string = '<ul data-tdal-repeat="item items"><li data-tdal-condition="REPEAT/item/missing">Shown</li></ul>';
+			const data: { REPEAT: { item: { missing: boolean; }; }; items: number[]; } = {
+				REPEAT: { item: { missing: true } },
+				items: [ 1 ]
+			};
+			const compiled: ReturnType<typeof templateEngine.CompileToFunction> = templateEngine.CompileToFunction( template );
+			const result: string = compiled( data );
+			t.is( result, expected );
+		} );
+
+		test( prefix + ': should retry default raw paths only when their local result is false', ( t ) => {
+			const falseTemplate: string = '<ul data-tdal-repeat="item items"><li data-tdal-content="item/value">Default</li></ul>';
+			const zeroTemplate: string = '<ul data-tdal-repeat="item items"><li data-tdal-content="item/value">Default</li></ul>';
+			const emptyStringTemplate: string = '<ul data-tdal-repeat="item items"><li data-tdal-content="item/value">Default</li></ul>';
+			const nestedTemplate: string = '<ul data-tdal-repeat="item items"><li data-tdal-content="item/nested/value">Default</li></ul>';
+			const falseCompiled: ReturnType<typeof templateEngine.CompileToFunction> = templateEngine.CompileToFunction( falseTemplate );
+			const zeroCompiled: ReturnType<typeof templateEngine.CompileToFunction> = templateEngine.CompileToFunction( zeroTemplate );
+			const emptyStringCompiled: ReturnType<typeof templateEngine.CompileToFunction> = templateEngine.CompileToFunction( emptyStringTemplate );
+			const nestedCompiled: ReturnType<typeof templateEngine.CompileToFunction> = templateEngine.CompileToFunction( nestedTemplate );
+
+			t.is( falseCompiled( { items: [ { value: false } ], item: { value: 'global' } } ), '<ul><li>global</li></ul>' );
+			t.is( zeroCompiled( { items: [ { value: 0 } ], item: { value: 'global' } } ), '<ul><li>0</li></ul>' );
+			t.is( emptyStringCompiled( { items: [ { value: '' } ], item: { value: 'global' } } ), '<ul><li></li></ul>' );
+			t.is( nestedCompiled( { items: [ { nested: {} } ], item: { nested: { value: 'global' } } } ), '<ul><li>global</li></ul>' );
 		} );
 	}
 
@@ -894,6 +945,31 @@ for( const target of targets ) {
 			const compiledFunction = eval( '(' + functionString + ')' );
 			const result: string = compiledFunction( testData );
 			t.is( result, expected );
+		} );
+
+		test( prefix + ': should emit bitmask resolver flags', ( t ) => {
+			const defaultBoolean: string = templateEngine.CompileToString( '<span data-tdal-condition="booleanTrue">Shown</span>' );
+			const negatedDefaultBoolean: string = templateEngine.CompileToString( '<span data-tdal-condition="!booleanTrue">Hidden</span>' );
+			const defaultRaw: string = templateEngine.CompileToString( '<span data-tdal-content="string">Default</span>' );
+			const repeatBoolean: string = templateEngine.CompileToString( '<span data-tdal-condition="REPEAT/item/first">Shown</span>' );
+			const globalBoolean: string = templateEngine.CompileToString( '<span data-tdal-condition="GLOBAL/booleanTrue">Shown</span>' );
+			const stringBoolean: string = templateEngine.CompileToString( '<span data-tdal-condition="STRING:Shown">Shown</span>' );
+			const repeatRaw: string = templateEngine.CompileToString( '<span data-tdal-content="REPEAT/item/index">Default</span>' );
+			const globalRaw: string = templateEngine.CompileToString( '<span data-tdal-content="GLOBAL/stringName">Default</span>' );
+
+			t.true( defaultBoolean.includes( 'c=(a,c,e)=>{let z=a,y=c.split("/"),x=0,w,l=y.length,m=2&e;for(;x<l&&1!==z;){z="object"===typeof z&&null!==z&&void 0!==(w="function"===typeof z[y[x]]?z[y[x]](d,r):z[y[x]])&&w;x++;if(1&e&&(false===z||x==l&&m&&!b(z))){z=d;e=0;x=0}}return m?b(z):z}' ) );
+			t.true( defaultBoolean.includes( 'b=v=>!!v&&("object"!==typeof v||(Array.isArray(v)?0<v.length:0<Object.keys(v).length))' ) );
+			t.true( defaultBoolean.includes( 'c(r,"booleanTrue",3)' ) );
+			t.true( negatedDefaultBoolean.includes( '!c(r,"booleanTrue",3)' ) );
+			t.true( defaultRaw.includes( 'c(r,"string",1)' ) );
+			t.false( defaultRaw.includes( '.find((v)=>false!==v)' ) );
+			t.true( repeatBoolean.includes( 'c(r,"REPEAT/item/first",2)' ) );
+			t.true( globalBoolean.includes( 'c(d,"booleanTrue",2)' ) );
+			t.true( stringBoolean.includes( 'b("Shown")' ) );
+			t.true( repeatRaw.includes( 'c(r,"REPEAT/item/index")' ) );
+			t.false( repeatRaw.includes( 'c(r,"REPEAT/item/index",2)' ) );
+			t.true( globalRaw.includes( 'c(d,"stringName")' ) );
+			t.false( globalRaw.includes( 'c(d,"stringName",2)' ) );
 		} );
 	}
 
