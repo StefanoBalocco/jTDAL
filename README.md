@@ -22,7 +22,7 @@ Small template engine based on Zope TAL, using data attributes.
 Runs on Node.js and in browsers. Written in TypeScript.
 
 * 0 dependencies
-* Only ~2.7KB gzipped
+* Less than 4 KB gzipped
 * Designer-friendly — templates work in any WYSIWYG editor or browser preview
 * No custom syntax to break HTML validation
 * Compile templates to optimized JavaScript functions
@@ -67,7 +67,7 @@ const render = templateEngine.CompileToFunction(template);
 const result = render({ message: "Hello World" });
 
 console.log(result);
-// Output: Hello World
+// Output: <span>Hello World</span>
 ```
 
 ## Constructor
@@ -83,7 +83,7 @@ constructor(trim = true, strip = true)
 
 ### CompileToFunction(template)
 
-Compiles a template string into a callable function that accepts a data object.
+Compiles a template string into a callable function that accepts a data object. Propagates template parse errors and any errors raised while constructing the generated function.
 
 ```javascript
 const render = templateEngine.CompileToFunction(template);
@@ -92,7 +92,7 @@ const html = render({ name: "Alice", items: [1, 2, 3] });
 
 ### CompileToString(template)
 
-Compiles a template string into a string containing the generated function code. Useful for precompiling templates and saving them as JavaScript files.
+Compiles a template string into a string containing the generated function code. Useful for precompiling templates and saving them as JavaScript files. Propagates template parse errors.
 
 ```javascript
 const code = templateEngine.CompileToString(template);
@@ -122,23 +122,21 @@ Paths resolve as follows:
 
 #### Fallback Paths
 
-Use the pipe `|` character to provide fallback values. The first existing path is used:
+Use the pipe `|` character to provide fallback values. The first truthy resolved value is used:
 
 ```plaintext
 missing/path | fallback/path | last/resort
 ```
 
+A present value that is falsy falls through to the next fallback. Values such as `0`, `false`, `""`, `null`, `undefined`, and `NaN` therefore do not stop the chain.
+
+In `data-tdal-content`, `data-tdal-replace`, `data-tdal-condition`, `data-tdal-attributes`, and `data-tdal-omittag`, a path chain may end with a single `| STRING:` fallback. `STRING:` and `MACRO:` expressions do not accept `|` fallbacks.
+
 #### Falsy Values
 
-These values evaluate as falsy:
+Whenever jTDAL evaluates an expression in a boolean context, it follows JavaScript truthiness and additionally treats empty arrays and empty objects as false. Boolean contexts include `{?condition}...{/?}` conditional blocks, `data-tdal-condition`, `data-tdal-omittag`, boolean attributes, and `!` negation.
 
-- `false`, `null`, `undefined`
-- `""` (empty string)
-- `0`
-- `[]` (empty array)
-- `{}` (empty object)
-
-Everything else is truthy.
+All other values follow JavaScript truthiness. Empty arrays and objects are falsy only in boolean contexts; content and replace fallback evaluation uses JavaScript truthiness, so they do not select a fallback.
 
 #### Path Modifiers
 
@@ -153,7 +151,7 @@ Prefix with `!` to negate a boolean:
 - `TRUE` — Always returns `true` (stops fallback evaluation)
 - `FALSE` — Always returns `false` (stops fallback evaluation)
 - `GLOBAL` — Search in global context, bypassing local scopes (e.g. `GLOBAL/variableName`)
-- `REPEAT` — Search in the repeat context, bypassing local scopes (e.g. `REPEAT/variableName`)
+- `REPEAT` — Search in the repeat context, bypassing local scopes (e.g. `REPEAT/item/number`)
 
 ### String Expressions
 
@@ -249,7 +247,7 @@ The `REPEAT` object provides:
 </div>
 
 <!-- Using REPEAT variables -->
-<tr data-tdal-repeat="row rows" data-tdal-attributes="class STRING:{?REPEAT/row/odd}odd{?/REPEAT/row/odd}{?REPEAT/row/even}even{?/REPEAT/row/even}">
+<tr data-tdal-repeat="row rows" data-tdal-attributes="class STRING:{?REPEAT/row/odd}odd{/?}{?REPEAT/row/even}even{/?}">
   <td data-tdal-content="REPEAT/row/number">Index</td>
   <td data-tdal-content="row/value">Value</td>
 </tr>
@@ -265,7 +263,7 @@ The `REPEAT` object provides:
 
 ### data-tdal-content
 
-Replaces the tag's inner content with the result of the expression. The expression can be a path, a `STRING:` expression, or a `MACRO:` reference, with optional `!` negation and `|` fallbacks. Prefix with `structure` to insert raw HTML without escaping. If the expression evaluates to false, the content is removed.
+Replaces the tag's inner content with the result of the expression. The expression can be a path with optional `!` negation and a single `| STRING:` fallback, a `STRING:` expression, or a `MACRO:` reference (see Fallback Paths). Prefix with `structure` to insert raw HTML without escaping. If the expression evaluates to false, the content is removed.
 
 **Examples:**
 
@@ -296,8 +294,8 @@ Replaces the entire tag and its contents with the result of the expression. Acce
 <!-- Replace tag with value -->
 <span data-tdal-replace="status">Status</span>
 
-<!-- String template replacement -->
-<span data-tdal-replace="STRING:<strong>{username}</strong>">Username</span>
+<!-- String template replacement (structure renders raw HTML) -->
+<span data-tdal-replace="structure STRING:<strong>{username}</strong>">Username</span>
 
 <!-- Using a macro -->
 <div data-tdal-replace="MACRO:navigationMenu">Nav</div>
@@ -308,7 +306,7 @@ Replaces the entire tag and its contents with the result of the expression. Acce
 
 ### data-tdal-attributes
 
-Sets or modifies tag attributes. Each pair follows the format `attribute expression`, separated by `;;`. Expressions can be paths, `STRING:` expressions, with optional `!` negation and `|` fallbacks. Append `?` to the attribute name for HTML5 boolean attributes: present when truthy, absent when falsy.
+Sets or modifies tag attributes. Each pair follows the format `attribute expression`, separated by `;;`. Expressions can be a path with optional `!` negation and `|` fallbacks, or a `STRING:` expression. Append `?` to the attribute name for HTML5 boolean attributes: present when truthy, absent when falsy.
 
 **Examples:**
 
@@ -368,6 +366,8 @@ const macro = `Hello, <span data-tdal-replace="name | STRING:World"></span>!`;
 templateEngine.MacroAdd("helloworld", macro);
 ```
 
+`MacroAdd` returns no value. An invalid macro name throws `MacroAdd: Invalid macro name`; a template parse failure is propagated. A macro whose registration fails is not registered and does not replace an existing macro of the same name.
+
 ### Use in Content
 
 Replaces the tag's inner content with the rendered macro:
@@ -391,9 +391,11 @@ Replaces the entire tag with the rendered macro:
 Macros inherit the data context of the calling template:
 
 ```html
-<div data-tdal-repeat="item items">
-  <div data-tdal-replace="MACRO:helloworld">Item</div>
-</div>
+<div data-tdal-repeat="name names"><div data-tdal-replace="MACRO:helloworld">Hello, Macro!</div></div>
 ```
 
-In this example, the `helloworld` macro accesses `item` within each loop iteration.
+In this example, the `helloworld` macro reads `name` within each loop iteration. With `names: ["Alice", "Bob"]`, this renders:
+
+```html
+<div>Hello, Alice!</div><div>Hello, Bob!</div>
+```

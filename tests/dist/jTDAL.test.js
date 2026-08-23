@@ -111,6 +111,12 @@ for (const target of targets) {
             const result = compiled(testData);
             t.is(result, expected);
         });
+        test(prefix + ': static FALSE should skip malformed later attributes', (t) => {
+            const template = '<div data-tdal-condition="FALSE" data-tdal-attributes="title STRING:{?flag}">drop</div><span>keep</span>';
+            const compiled = templateEngine.CompileToFunction(template);
+            const result = compiled({});
+            t.is(result, '<span>keep</span>');
+        });
         test(prefix + ': static FALSE should not prevent following repeat from being parsed', (t) => {
             const expected = '<li>A</li><li>B</li><li>C</li>';
             const template = '<div data-tdal-condition="FALSE">Never shown</div>' +
@@ -118,6 +124,28 @@ for (const target of targets) {
             const compiled = templateEngine.CompileToFunction(template);
             const result = compiled(testData);
             t.is(result, expected);
+        });
+        test(prefix + ': discarded tags should not activate helper metadata', (t) => {
+            const template = '<div data-tdal-condition="booleanTrue" data-tdal-replace="FALSE">Default</div>';
+            const compiled = templateEngine.CompileToString(template);
+            const helperDeclarations = ['const r=', 'c=(a,c,e)=>', 'b=v=>', 't=[1]'];
+            for (const declaration of helperDeclarations) {
+                t.false(compiled.includes(declaration));
+            }
+            t.is(templateEngine.CompileToFunction(template)(testData), '');
+        });
+        test(prefix + ': static FALSE branches should not activate helper metadata', (t) => {
+            templateEngine.MacroAdd('static-false-macro', '<span data-tdal-content="string">Default</span>');
+            const template = '<div data-tdal-condition="FALSE"><span data-tdal-repeat="item arrayStrings" data-tdal-content="MACRO:static-false-macro" data-tdal-attributes="title string">Default</span></div>';
+            const compiled = templateEngine.CompileToString(template);
+            const helperDeclarations = ['const r=', 't=[1]', 'c=(a,c,e)=>', 'b=v=>', 'let q;', 'f=/[&<>"]/g', 's={"&"'];
+            const cL1 = helperDeclarations.length;
+            for (let iL1 = 0; iL1 < cL1; iL1++) {
+                const declaration = helperDeclarations[iL1];
+                t.false(compiled.includes(declaration));
+            }
+            t.false(compiled.includes('m={'));
+            t.is(templateEngine.CompileToFunction(template)(testData), '');
         });
         test(prefix + ': should handle negation of FALSE keyword (!FALSE)', (t) => {
             const expected = '<div>Always shown</div>';
@@ -146,6 +174,13 @@ for (const target of targets) {
         test(prefix + ': should repeat element for array items', (t) => {
             const expected = '<li>A</li><li>B</li><li>C</li>';
             const template = '<li data-tdal-repeat="item arrayStrings" data-tdal-content="item">Default</li>';
+            const compiled = templateEngine.CompileToFunction(template);
+            const result = compiled(testData);
+            t.is(result, expected);
+        });
+        test(prefix + ': should replace each repeated element', (t) => {
+            const expected = 'ABC';
+            const template = '<li data-tdal-repeat="item arrayStrings" data-tdal-replace="item">Default</li>';
             const compiled = templateEngine.CompileToFunction(template);
             const result = compiled(testData);
             t.is(result, expected);
@@ -199,15 +234,33 @@ for (const target of targets) {
             const result = compiled(testData);
             t.is(result, expected);
         });
-        test(prefix + ': should omit unused REPEAT metadata from generated code', (t) => {
+        test(prefix + ': should always emit REPEAT metadata from generated code', (t) => {
             const template = '<li data-tdal-repeat="item arrayStrings" data-tdal-content="item">Default</li>';
             const compiled = templateEngine.CompileToString(template);
-            t.false(compiled.includes('r["REPEAT"]["item"]={'));
+            t.true(compiled.includes('r["REPEAT"]["item"]={'));
+            t.true(compiled.includes('delete r["REPEAT"]["item"]'));
+            t.true(compiled.includes('delete r["item"]'));
+            t.is(templateEngine.CompileToFunction(template)(testData), '<li>A</li><li>B</li><li>C</li>');
         });
         test(prefix + ': should keep used REPEAT metadata in generated code', (t) => {
             const template = '<li data-tdal-repeat="item arrayStrings" data-tdal-content="REPEAT/item/number">Default</li>';
             const compiled = templateEngine.CompileToString(template);
             t.true(compiled.includes('r["REPEAT"]["item"]={'));
+        });
+        test(prefix + ': should keep used REPEAT metadata for self-closed repeats', (t) => {
+            const template = '<input data-tdal-repeat="item arrayStrings" data-tdal-content="REPEAT/item/number" />';
+            const compiled = templateEngine.CompileToString(template);
+            t.true(compiled.includes('r["REPEAT"]["item"]={'));
+            t.true(compiled.includes('delete r["REPEAT"]["item"]'));
+            t.true(compiled.includes('delete r["item"]'));
+            t.is(templateEngine.CompileToFunction(template)(testData), '<input>1</input><input>2</input><input>3</input>');
+        });
+        test(prefix + ': should initialize an empty repeat root for a bare REPEAT read', (t) => {
+            const template = '<span data-tdal-content="REPEAT/item/number">Default</span>';
+            const compiled = templateEngine.CompileToString(template);
+            t.true(compiled.includes('r={}'));
+            t.false(compiled.includes('r={"REPEAT":{}}'));
+            t.is(templateEngine.CompileToFunction(template)({}), '<span></span>');
         });
         test(prefix + ': should handle static TRUE value (empty output)', (t) => {
             const expected = '';
@@ -222,6 +275,12 @@ for (const target of targets) {
             const compiled = templateEngine.CompileToFunction(template);
             const result = compiled(testData);
             t.is(result, expected);
+        });
+        test(prefix + ': static repeat drop should skip malformed later omittag', (t) => {
+            const template = '<div data-tdal-repeat="item FALSE" data-tdal-omittag="STRING:{?flag}">drop</div><span>keep</span>';
+            const compiled = templateEngine.CompileToFunction(template);
+            const result = compiled({});
+            t.is(result, '<span>keep</span>');
         });
     }
     {
@@ -319,23 +378,21 @@ for (const target of targets) {
                 const result = compiled(testData);
                 t.is(result, expected);
             });
-            test(prefix + ' returns an empty template for an unclosed condition', (t) => {
+            test(prefix + ' throws for an unclosed condition', (t) => {
                 const template = '<span data-tdal-content="STRING:{?booleanTrue}Text">Default</span>';
-                const compiled = templateEngine.CompileToFunction(template);
-                const result = compiled(testData);
-                t.is(result, '');
+                t.throws(() => templateEngine.CompileToFunction(template), { message: 'ParseString: Unclosed tag' });
             });
-            test(prefix + ' returns an empty template for an unopened close', (t) => {
+            test(prefix + ' throws for an unopened close', (t) => {
                 const template = '<span data-tdal-content="STRING:Text{/?}">Default</span>';
-                const compiled = templateEngine.CompileToFunction(template);
-                const result = compiled(testData);
-                t.is(result, '');
+                t.throws(() => templateEngine.CompileToFunction(template), { message: 'ParseString: Unopened tag' });
             });
-            test(prefix + ' returns an empty template for a named close', (t) => {
-                const template = '<span data-tdal-content="STRING:{?booleanTrue}Text{/booleanTrue}">Default</span>';
-                const compiled = templateEngine.CompileToFunction(template);
-                const result = compiled(testData);
-                t.is(result, '');
+            test(prefix + ' throws for a bare unopened close', (t) => {
+                const template = '<span data-tdal-content="STRING:{/?}">Default</span>';
+                t.throws(() => templateEngine.CompileToFunction(template), { message: 'ParseString: Unopened tag' });
+            });
+            test(prefix + ' throws for a named close', (t) => {
+                const template = '<span data-tdal-content="STRING:{?booleanTrue}x{/booleanTrue}">Default</span>';
+                t.throws(() => templateEngine.CompileToFunction(template), { message: 'ParseString: Unclosed tag' });
             });
             test(prefix + ' keeps an invalid opener literal', (t) => {
                 const expected = '<span>{?not valid}</span>';
@@ -382,6 +439,12 @@ for (const target of targets) {
             const compiled = templateEngine.CompileToFunction(template);
             const result = compiled(testData);
             t.is(result, expected);
+        });
+        test(prefix + ': static replace drop should skip malformed later attributes', (t) => {
+            const template = '<div data-tdal-replace="FALSE" data-tdal-attributes="title STRING:{?flag}">drop</div><span>keep</span>';
+            const compiled = templateEngine.CompileToFunction(template);
+            const result = compiled({});
+            t.is(result, '<span>keep</span>');
         });
     }
     {
@@ -529,6 +592,14 @@ for (const target of targets) {
             const result = compiled(testData);
             t.is(result, expected);
         });
+        test(prefix + ': should emit repeat metadata for a reachable macro repeat declaration', (t) => {
+            templateEngine.MacroAdd('repeat-declaration', '<li data-tdal-repeat="item arrayStrings" data-tdal-content="item">Default</li>');
+            const template = '<div data-tdal-content="structure MACRO:repeat-declaration">Default</div>';
+            const compiled = templateEngine.CompileToString(template);
+            t.true(compiled.includes('r={"REPEAT":{}}'));
+            t.true(compiled.includes('r["REPEAT"]["item"]={'));
+            t.is(templateEngine.CompileToFunction(template)(testData), '<div><li>A</li><li>B</li><li>C</li></div>');
+        });
         test(prefix + ': should register and use macro in replace', (t) => {
             const expected = '<b>Hello World!</b>';
             templateEngine.MacroAdd('greeting', '<b>Hello <span data-tdal-replace="stringName">Guest</span>!</b>');
@@ -544,6 +615,56 @@ for (const target of targets) {
             const result = compiled(testData);
             t.is(result, expected);
         });
+        test(prefix + ': should treat inherited macro names as unknown', (t) => {
+            const template = '<div data-tdal-content="MACRO:toString">Default</div>';
+            const compiled = templateEngine.CompileToString(template);
+            t.false(compiled.includes('m={'));
+            t.is(templateEngine.CompileToFunction(template)(testData), '<div></div>');
+        });
+        test(prefix + ': should ignore literal helper markers inline and in a reachable macro', (t) => {
+            const literal = 't[ r[ c( b( q= .replace(f, m["x"]';
+            const inline = templateEngine.CompileToString('<div>' + literal + '</div>');
+            const helperDeclarations = ['const r=', 't=[1]', 'c=(a,c,e)=>', 'b=v=>', 'let q;', 'f=/[&<>"]/g', 's={"&"'];
+            let cL1 = helperDeclarations.length;
+            for (let iL1 = 0; iL1 < cL1; iL1++) {
+                const declaration = helperDeclarations[iL1];
+                t.false(inline.includes(declaration));
+            }
+            templateEngine.MacroAdd('x', '<span>X</span>');
+            templateEngine.MacroAdd('literal-markers', literal);
+            const macro = templateEngine.CompileToString('<div data-tdal-content="structure MACRO:literal-markers">Default</div>');
+            const macroHelperDeclarations = ['const r=', 't=[1]', 'c=(a,c,e)=>', 'b=v=>', 'f=/[&<>"]/g', 's={"&"'];
+            cL1 = macroHelperDeclarations.length;
+            for (let iL1 = 0; iL1 < cL1; iL1++) {
+                const declaration = macroHelperDeclarations[iL1];
+                t.false(macro.includes(declaration));
+            }
+            t.true(macro.includes('m={"literal-markers":()=>'));
+            t.false(macro.includes('"x":()=>'));
+        });
+        test(prefix + ': should include only the reachable nested macro closure', (t) => {
+            templateEngine.MacroAdd('metadata-closure-c', '<span>C</span>');
+            templateEngine.MacroAdd('metadata-closure-b', '<div data-tdal-content="structure MACRO:metadata-closure-c">B</div>');
+            templateEngine.MacroAdd('metadata-closure-a', '<div data-tdal-content="structure MACRO:metadata-closure-b">A</div>');
+            templateEngine.MacroAdd('metadata-closure-unrelated', '<span>Unrelated</span>');
+            const template = '<div data-tdal-content="structure MACRO:metadata-closure-a">Default</div>';
+            const compiled = templateEngine.CompileToString(template);
+            t.true(compiled.includes('"metadata-closure-a":()=>'));
+            t.true(compiled.includes('"metadata-closure-b":()=>'));
+            t.true(compiled.includes('"metadata-closure-c":()=>'));
+            t.false(compiled.includes('"metadata-closure-unrelated":()=>'));
+            t.true(compiled.indexOf('"metadata-closure-a":()=>') < compiled.indexOf('"metadata-closure-b":()=>'));
+            t.true(compiled.indexOf('"metadata-closure-b":()=>') < compiled.indexOf('"metadata-closure-c":()=>'));
+            t.is(templateEngine.CompileToFunction(template)(testData), '<div><div><div><span>C</span></div></div></div>');
+        });
+        test(prefix + ': should activate repeat metadata used by a reachable macro', (t) => {
+            const engine = new jTDAL();
+            engine.MacroAdd('metadata-repeat-number', '<span data-tdal-content="REPEAT/item/number">Default</span>');
+            const template = '<li data-tdal-repeat="item arrayStrings" data-tdal-content="structure MACRO:metadata-repeat-number">Default</li>';
+            const compiled = engine.CompileToString(template);
+            t.true(compiled.includes('r["REPEAT"]["item"]={'));
+            t.is(engine.CompileToFunction(template)(testData), '<li><span>1</span></li><li><span>2</span></li><li><span>3</span></li>');
+        });
         test(prefix + ': should preserve comments in macro when strip is false', (t) => {
             const noStripEngine = new jTDAL(true, false);
             const expected = '<div><!-- comment --><b>Hello</b></div>';
@@ -554,17 +675,20 @@ for (const target of targets) {
             t.is(result, expected);
         });
         test(prefix + ': should reject invalid macro names', (t) => {
-            const result = templateEngine.MacroAdd('invalid macro', '<b>Content</b>');
-            t.false(result);
+            t.throws(() => templateEngine.MacroAdd('invalid macro', '<b>Content</b>'), { message: 'MacroAdd: Invalid macro name' });
         });
-        test(prefix + ': should return false when macro parsing fails', (t) => {
-            const result = templateEngine.MacroAdd('invalid-template', '<div data-tdal-condition="TRUE">Content');
-            t.false(result);
+        test(prefix + ': should throw when macro parsing fails without registering it', (t) => {
+            const failedMacroName = 'invalid-template-propagation';
+            t.throws(() => templateEngine.MacroAdd(failedMacroName, '<div data-tdal-condition="TRUE">Content'), { message: 'Parse: Unclosed tag <div>' });
+            const template = '<div data-tdal-content="MACRO:' + failedMacroName + '">Default</div>';
+            const compiled = templateEngine.CompileToString(template);
+            t.false(compiled.includes('m={'));
+            t.is(templateEngine.CompileToFunction(template)(testData), '<div></div>');
         });
         test(prefix + ': should register a macro when trim is false', (t) => {
             const noTrimEngine = new jTDAL(false);
             const expected = ' <b>Hello</b> ';
-            t.true(noTrimEngine.MacroAdd('notrim', ' <b>Hello</b> '));
+            noTrimEngine.MacroAdd('notrim', ' <b>Hello</b> ');
             const template = '<div data-tdal-replace="structure MACRO:notrim">Default</div>';
             const compiled = noTrimEngine.CompileToFunction(template);
             const result = compiled(testData);
@@ -682,28 +806,29 @@ for (const target of targets) {
             const result = compiled(testData);
             t.is(result, expected);
         });
-        test(prefix + ': should return an empty template for unclosed tags', (t) => {
+        test(prefix + ': should throw for unclosed tags', (t) => {
             const template = '<div data-tdal-condition="TRUE">Content';
-            const compiled = templateEngine.CompileToFunction(template);
-            const result = compiled(testData);
-            t.is(result, '');
+            t.throws(() => templateEngine.CompileToFunction(template), { message: 'Parse: Unclosed tag <div>' });
         });
-        test(prefix + ': should return an empty template for unopened closing tags', (t) => {
-            const compiled = templateEngine.CompileToFunction('</div>');
-            const result = compiled(testData);
-            t.is(result, '');
+        test(prefix + ': should throw for unopened closing tags', (t) => {
+            const template = '</div>';
+            t.throws(() => templateEngine.CompileToFunction(template), { message: 'Parse: Unopened tag </div>' });
         });
-        test(prefix + ': should return an empty template for mismatched closing tags', (t) => {
+        test(prefix + ': should throw for mismatched closing tags', (t) => {
             const template = '<div data-tdal-condition="TRUE">Content</span>';
-            const compiled = templateEngine.CompileToFunction(template);
-            const result = compiled(testData);
-            t.is(result, '');
+            t.throws(() => templateEngine.CompileToFunction(template), { message: 'Parse: Mismatched closing tag </span>, expected </div>' });
         });
-        test(prefix + ': should return an empty template for self-closed non-void tags', (t) => {
+        test(prefix + ': should throw for a mismatched closing tag against the innermost open tag', (t) => {
+            const template = '<div><span></div>';
+            t.throws(() => templateEngine.CompileToFunction(template), { message: 'Parse: Mismatched closing tag </div>, expected </span>' });
+        });
+        test(prefix + ': should throw for self-closed non-void tags', (t) => {
             const template = '<div data-tdal-condition="TRUE" />';
-            const compiled = templateEngine.CompileToFunction(template);
-            const result = compiled(testData);
-            t.is(result, '');
+            t.throws(() => templateEngine.CompileToFunction(template), { message: 'Parse: Self-closed non-void tag <div>' });
+        });
+        test(prefix + ': should throw for a self-closed non-void tag with content', (t) => {
+            const template = '<div data-tdal-content="string" />';
+            t.throws(() => templateEngine.CompileToFunction(template), { message: 'Parse: Self-closed non-void tag <div>' });
         });
         test(prefix + ': should preserve TDAL inside nested template regions', (t) => {
             const template = '<template><template><span data-tdal-content="string">Default</span></template></template>';
@@ -794,11 +919,9 @@ for (const target of targets) {
             const result = compiled(testData);
             t.is(result, expected);
         });
-        test(prefix + ': should return an empty template for an unclosed comment', (t) => {
+        test(prefix + ': should throw for an unclosed comment', (t) => {
             const template = '<div>Before</div><!-- Comment';
-            const compiled = templateEngine.CompileToFunction(template);
-            const result = compiled(testData);
-            t.is(result, '');
+            t.throws(() => templateEngine.CompileToFunction(template), { message: 'Parse: Unclosed comment' });
         });
         test(prefix + ': should keep comments when strip is false', (t) => {
             templateEngine = new jTDAL(true, false);
@@ -822,6 +945,9 @@ for (const target of targets) {
             const result = compiled(testData);
             t.is(result, expected);
         });
+        test(prefix + ': should preserve literal ") ?" text', (t) => {
+            t.is(templateEngine.CompileToFunction('<div>) ?</div>')({}), '<div>) ?</div>');
+        });
         test(prefix + ': should handle deeply nested paths', (t) => {
             const expected = '<span>Deep value</span>';
             const template = '<span data-tdal-content="nested/b/c/d/e">Default</span>';
@@ -835,6 +961,18 @@ for (const target of targets) {
             const compiled = templateEngine.CompileToFunction(template);
             const result = compiled(testData);
             t.is(result, expected);
+        });
+        test(prefix + ': should throw for invalid REPEAT path syntax', (t) => {
+            const template = '<div data-tdal-content="REPEAT/item">Default</div>';
+            t.throws(() => templateEngine.CompileToFunction(template), { message: 'ParsePath: Invalid REPEAT syntax' });
+        });
+        test(prefix + ': should throw for invalid GLOBAL path syntax', (t) => {
+            const template = '<div data-tdal-content="GLOBAL">Default</div>';
+            t.throws(() => templateEngine.CompileToFunction(template), { message: 'ParsePath: Invalid GLOBAL syntax' });
+        });
+        test(prefix + ': should throw for an invalid leading-slash path length', (t) => {
+            const template = '<div data-tdal-content="/item">Default</div>';
+            t.throws(() => templateEngine.CompileToFunction(template), { message: 'ParsePath: Invalid path length' });
         });
         {
             prefix = tag + ' Edge cases and special scenarios: should handle trim option';
@@ -902,6 +1040,17 @@ for (const target of targets) {
     }
     {
         prefix = tag + ' Global paths';
+        test(prefix + ': should retry a TDAL-empty local boolean path against global data', (t) => {
+            const expected = '<ul><li>Shown</li></ul>';
+            const template = '<ul data-tdal-repeat="item items"><li data-tdal-condition="item/value">Shown</li></ul>';
+            const compiled = templateEngine.CompileToFunction(template);
+            const data = {
+                items: [{ value: {} }],
+                item: { value: true }
+            };
+            const result = compiled(data);
+            t.is(result, expected);
+        });
         test(prefix + ': should resolve GLOBAL path in content', (t) => {
             const expected = '<span>World</span>';
             const template = '<span data-tdal-content="GLOBAL/stringName">Default</span>';
@@ -925,7 +1074,35 @@ for (const target of targets) {
         });
     }
     {
+        prefix = tag + ' CompileToFunction method';
+        test(prefix + ': should propagate new Function construction errors', (t) => {
+            const originalFunction = globalThis.Function;
+            const throwingFunction = function (..._args) {
+                throw new SyntaxError('Injected Function error');
+            };
+            globalThis.Function = throwingFunction;
+            try {
+                t.throws(() => templateEngine.CompileToFunction('<div>Content</div>'), { instanceOf: SyntaxError, message: 'Injected Function error' });
+            }
+            finally {
+                globalThis.Function = originalFunction;
+            }
+        });
+    }
+    {
         prefix = tag + ' CompileToString method';
+        test(prefix + ': should emit bitmask resolver flags', (t) => {
+            const defaultBoolean = templateEngine.CompileToString('<span data-tdal-condition="booleanTrue">Shown</span>');
+            const defaultRaw = templateEngine.CompileToString('<span data-tdal-content="string">Default</span>');
+            const repeatBoolean = templateEngine.CompileToString('<span data-tdal-condition="REPEAT/item/first">Shown</span>');
+            const globalBoolean = templateEngine.CompileToString('<span data-tdal-condition="GLOBAL/booleanTrue">Shown</span>');
+            t.true(defaultBoolean.includes('c(r,"booleanTrue",3)'));
+            t.true(defaultBoolean.includes('b=v=>!!v&&'));
+            t.true(defaultRaw.includes('c(r,"string",1)'));
+            t.false(defaultRaw.includes('b=v=>!!v&&'));
+            t.true(repeatBoolean.includes('c(r,"REPEAT/item/first",2)'));
+            t.true(globalBoolean.includes('c(d,"booleanTrue",2)'));
+        });
         test(prefix + ': should return function as string', (t) => {
             const expected = '<div>Hello World</div>';
             const template = '<div data-tdal-content="string">Default</div>';
@@ -935,10 +1112,9 @@ for (const target of targets) {
             const result = compiledFunction(testData);
             t.is(result, expected);
         });
-        test(prefix + ': should return an empty function string when parsing fails', (t) => {
+        test(prefix + ': should throw when parsing fails', (t) => {
             const template = '<div data-tdal-condition="TRUE">Content';
-            const functionString = templateEngine.CompileToString(template);
-            t.is(functionString, 'function(){return""}');
+            t.throws(() => templateEngine.CompileToString(template), { message: 'Parse: Unclosed tag <div>' });
         });
     }
     {
@@ -981,11 +1157,13 @@ for (const target of targets) {
         {
             prefix = tag + ' Internal methods';
             test(prefix + ': _ParsePath should return false for empty path', (t) => {
-                const result = jTDAL._ParsePath('');
+                const parseResult = ['', [false, false, false, false, false], new Set(), new Set()];
+                const result = jTDAL._ParsePath('', false, {}, parseResult);
                 t.is(result, 'false');
             });
             test(prefix + ': _ParsePath should return false for null path', (t) => {
-                const result = jTDAL._ParsePath(null);
+                const parseResult = ['', [false, false, false, false, false], new Set(), new Set()];
+                const result = jTDAL._ParsePath(null, false, {}, parseResult);
                 t.is(result, 'false');
             });
         }

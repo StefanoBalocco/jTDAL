@@ -20,9 +20,8 @@ export default class jTDAL {
     private static readonly _regexpTrimEnd;
     private static readonly _regexpTagEnd;
     private static readonly _regexpMacroName;
-    private static readonly _regexpGeneratedRepeat;
-    private static readonly _regexpGeneratedMacro;
     private static readonly _regexpGeneratedConcatenation;
+    private static readonly _templateSnippetQ;
     private static readonly _HTML5VoidElements;
     private readonly _trim;
     private readonly _strip;
@@ -31,7 +30,7 @@ export default class jTDAL {
     private static _ParsePath;
     constructor(trim?: boolean, strip?: boolean);
     private _Parse;
-    MacroAdd(macroName: string, template: string): boolean;
+    MacroAdd(macroName: string, template: string): void;
     private _Compile;
     CompileToFunction(template: string): TemplateEngine;
     CompileToString(template: string): string;
