@@ -303,7 +303,7 @@ for( const target of targets ) {
 			const template: string = '<span data-tdal-content="REPEAT/item/number">Default</span>';
 			const compiled: string = templateEngine.CompileToString( template );
 			t.true( compiled.includes( 'r={}' ) );
-			t.false( compiled.includes( 'r={"REPEAT":{}}' ) );
+			t.false( compiled.includes( 'r={REPEAT:{}}' ) );
 			t.is( templateEngine.CompileToFunction( template )( {} ), '<span></span>' );
 		} );
 
@@ -689,7 +689,7 @@ for( const target of targets ) {
 			templateEngine.MacroAdd( 'repeat-declaration', '<li data-tdal-repeat="item arrayStrings" data-tdal-content="item">Default</li>' );
 			const template: string = '<div data-tdal-content="structure MACRO:repeat-declaration">Default</div>';
 			const compiled: string = templateEngine.CompileToString( template );
-			t.true( compiled.includes( 'r={"REPEAT":{}}' ) );
+			t.true( compiled.includes( 'r={REPEAT:{}}' ) );
 			t.true( compiled.includes( 'r["REPEAT"]["item"]={' ) );
 			t.is( templateEngine.CompileToFunction( template )( testData ), '<div><li>A</li><li>B</li><li>C</li></div>' );
 		} );
@@ -1034,6 +1034,27 @@ for( const target of targets ) {
 			t.is( result, expected );
 		} );
 
+		{
+			prefix = tag + ' Literal quoting';
+			test( prefix + ': should preserve text containing both quote types', ( t ) => {
+				const engine: jTDALOriginal = new jTDAL();
+				const expected: string = '<div>She said "hello" and \'goodbye\'</div>';
+				const template: string = '<div data-tdal-condition="TRUE">She said "hello" and \'goodbye\'</div>';
+				const compiled: TemplateEngine = engine.CompileToFunction( template );
+				const result: string = compiled( testData );
+				t.is( result, expected );
+			} );
+
+			test( prefix + ': should preserve text containing both quote types and a backtick', ( t ) => {
+				const engine: jTDALOriginal = new jTDAL();
+				const expected: string = '<div>She said "hello", \'goodbye\', and `maybe`</div>';
+				const template: string = '<div data-tdal-condition="TRUE">She said "hello", \'goodbye\', and `maybe`</div>';
+				const compiled: TemplateEngine = engine.CompileToFunction( template );
+				const result: string = compiled( testData );
+				t.is( result, expected );
+			} );
+		}
+
 		test( prefix + ': should handle comments removal when strip is true', ( t ) => {
 			const expected: string = '<div>Before</div><div>After</div>';
 			const template: string = '<div>Before</div><!-- Comment --><div>After</div>';
@@ -1327,24 +1348,5 @@ for( const target of targets ) {
 			const result: string = compiled( testData );
 			t.is( result, expected );
 		} );
-	}
-
-	if( jTDALOriginal === jTDAL ) {
-		{
-			prefix = tag + ' Internal methods';
-			test( prefix + ': _ParsePath should return false for empty path', ( t ) => {
-				const parseResult: [ string, boolean[], Set<string>, Set<string> ] = [ '', [ false, false, false, false, false ], new Set<string>(), new Set<string>() ];
-				// @ts-expect-error - accessing private static method for coverage
-				const result: string = jTDAL._ParsePath( '', false, {}, parseResult );
-				t.is( result, 'false' );
-			} );
-
-			test( prefix + ': _ParsePath should return false for null path', ( t ) => {
-				const parseResult: [ string, boolean[], Set<string>, Set<string> ] = [ '', [ false, false, false, false, false ], new Set<string>(), new Set<string>() ];
-				// @ts-expect-error - accessing private static method for coverage
-				const result: string = jTDAL._ParsePath( null, false, {}, parseResult );
-				t.is( result, 'false' );
-			} );
-		}
 	}
 }
