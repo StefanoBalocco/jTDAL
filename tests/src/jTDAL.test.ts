@@ -1053,6 +1053,24 @@ for( const target of targets ) {
 				const result: string = compiled( testData );
 				t.is( result, expected );
 			} );
+
+			test( prefix + ': should emit JSON.stringify-style literals for static text with mixed quotes', ( t ) => {
+				const engine: jTDALOriginal = new jTDAL();
+				const templateQuotes: string = '<div data-tdal-condition="TRUE">She said "hello" and \'goodbye\'</div>';
+				const compiledQuotes: string = engine.CompileToString( templateQuotes );
+
+				t.true( compiledQuotes.includes( '"<div>She said \\"hello\\" and \'goodbye\'</div>"' ) );
+				t.false( compiledQuotes.includes( '`She said' ) );
+				t.false( compiledQuotes.includes( "'She said" ) );
+				t.is( engine.CompileToFunction( templateQuotes )( testData ), '<div>She said "hello" and \'goodbye\'</div>' );
+
+				const templateBacktick: string = '<div data-tdal-condition="TRUE">She said "hello", \'goodbye\', and `maybe`</div>';
+				const compiledBacktick: string = engine.CompileToString( templateBacktick );
+
+				t.true( compiledBacktick.includes( '"<div>She said \\"hello\\", \'goodbye\', and `maybe`</div>"' ) );
+				t.false( compiledBacktick.includes( '`She said' ) );
+				t.is( engine.CompileToFunction( templateBacktick )( testData ), '<div>She said "hello", \'goodbye\', and `maybe`</div>' );
+			} );
 		}
 
 		test( prefix + ': should handle comments removal when strip is true', ( t ) => {

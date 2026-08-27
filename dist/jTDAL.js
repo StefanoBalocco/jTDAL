@@ -26,8 +26,6 @@ export default class jTDAL {
     static _regexpTagEnd = /\s*\/?>$/;
     static _regexpMacroName = /^[a-zA-Z0-9-]+$/;
     static _regexpGeneratedConcatenation = /(?<!\\)"\+"/g;
-    static _regexpDequote = /^"|"$|\\(?=")/g;
-    static _regexpCanBacktick = /`|\${/;
     static _templateSnippetQ = '+((q=%,false!==q)&&("string"===typeof q||("number"===typeof q&&!isNaN(q)))?';
     static _HTML5VoidElements = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr']);
     _trim;
@@ -189,19 +187,6 @@ export default class jTDAL {
         }
         return returnValue;
     }
-    static _Quote(value) {
-        let returnValue = JSON.stringify(value);
-        if (value.includes('"')) {
-            const content = returnValue.replace(jTDAL._regexpDequote, "");
-            if (!value.includes("'")) {
-                returnValue = "'" + content + "'";
-            }
-            else if (!jTDAL._regexpCanBacktick.test(value)) {
-                returnValue = "`" + content + "`";
-            }
-        }
-        return returnValue;
-    }
     constructor(trim = true, strip = true) {
         this._trim = trim;
         this._strip = strip;
@@ -223,7 +208,7 @@ export default class jTDAL {
                 if (tmpTDALTags[0].endsWith('-->')) {
                     if (!skip && !inOpaqueRegion && this._strip) {
                         if (sourceIndex < tmpTDALTags.index) {
-                            returnValue[0] += '+' + jTDAL._Quote(template.substring(sourceIndex, tmpTDALTags.index));
+                            returnValue[0] += '+' + JSON.stringify(template.substring(sourceIndex, tmpTDALTags.index));
                         }
                         sourceIndex = jTDAL._regexpTagWithTDAL.lastIndex;
                     }
@@ -246,9 +231,9 @@ export default class jTDAL {
                             const beforeClose = (undefined !== closed.beforeClose);
                             if (beforeClose) {
                                 if (!closed.skip && (sourceIndex < tmpTDALTags.index)) {
-                                    returnValue[0] += '+' + jTDAL._Quote(template.substring(sourceIndex, tmpTDALTags.index));
+                                    returnValue[0] += '+' + JSON.stringify(template.substring(sourceIndex, tmpTDALTags.index));
                                 }
-                                returnValue[0] += closed.beforeClose + '+' + jTDAL._Quote(closed.omitClose ? '' : tmpTDALTags[0]) + closed.afterClose;
+                                returnValue[0] += closed.beforeClose + '+' + JSON.stringify(closed.omitClose ? '' : tmpTDALTags[0]) + closed.afterClose;
                                 if (closed.repeatName) {
                                     returnValue[0] += `;},""):"")+((t[0]-=3)&&(delete r["REPEAT"]["${closed.repeatName}"])&&(delete r["${closed.repeatName}"])?"":"")${closed.repeatCloseTail}`;
                                 }
@@ -274,7 +259,7 @@ export default class jTDAL {
                     }
                     else if (tmpTDALTags[1]) {
                         if (sourceIndex < tmpTDALTags.index) {
-                            returnValue[0] += '+' + jTDAL._Quote(template.substring(sourceIndex, tmpTDALTags.index));
+                            returnValue[0] += '+' + JSON.stringify(template.substring(sourceIndex, tmpTDALTags.index));
                         }
                         const current = ['', tmpTDALTags[0], '', '', '', ''];
                         const tagResult = ['', [false, false, false, false, false], new Set(), new Set()];
@@ -386,7 +371,7 @@ export default class jTDAL {
                                         }
                                         if (attributes[match[1]]) {
                                             current[1] = current[1].replace(RegExp(`\\s*\\b${match[1]}\\b(?:=(['"]).*?\\1)?(?=\\s|\\/?>)`), '');
-                                            current[2] += attributes[match[1]][3] ? '+"="+' + jTDAL._Quote(attributes[match[1]][2] + attributes[match[1]][3] + attributes[match[1]][2]) : '';
+                                            current[2] += attributes[match[1]][3] ? '+"="+' + JSON.stringify(attributes[match[1]][2] + attributes[match[1]][3] + attributes[match[1]][2]) : '';
                                         }
                                         current[2] += isFlag ? ')' : '))';
                                     }
@@ -429,8 +414,8 @@ export default class jTDAL {
                             if (repeatName) {
                                 returnValue[0] += `return o${openingOutput}`;
                             }
-                            returnValue[0] += '+' + jTDAL._Quote(current[1]) + current[2] + (current[1] ? `+"${syntheticClose ? '' : '/'}>"` : '') + current[3];
-                            returnValue[0] += current[4] + '+' + jTDAL._Quote(syntheticClose ? `</${tagName}>` : '') + current[5];
+                            returnValue[0] += '+' + JSON.stringify(current[1]) + current[2] + (current[1] ? `+"${syntheticClose ? '' : '/'}>"` : '') + current[3];
+                            returnValue[0] += current[4] + '+' + JSON.stringify(syntheticClose ? `</${tagName}>` : '') + current[5];
                             if (repeatName) {
                                 returnValue[0] += `;},""):"")+((t[0]-=3)&&(delete r["REPEAT"]["${repeatName}"])&&(delete r["${repeatName}"])?"":"")${repeatCloseTail}`;
                             }
@@ -441,7 +426,7 @@ export default class jTDAL {
                             if (repeatName) {
                                 returnValue[0] += `return o` + openingOutput;
                             }
-                            returnValue[0] += '+' + jTDAL._Quote(current[1]) + current[2] + (current[1] ? '+">"' : '') + current[3];
+                            returnValue[0] += '+' + JSON.stringify(current[1]) + current[2] + (current[1] ? '+">"' : '') + current[3];
                             sourceIndex = jTDAL._regexpTagWithTDAL.lastIndex;
                             const stackTag = { name: tagName, skip: dropContent, beforeClose: current[4], afterClose: current[5], omitClose };
                             if (repeatName) {
@@ -471,7 +456,7 @@ export default class jTDAL {
         }
         if (0 == stack.length) {
             if (sourceIndex < template.length) {
-                returnValue[0] += '+' + jTDAL._Quote(template.substring(sourceIndex));
+                returnValue[0] += '+' + JSON.stringify(template.substring(sourceIndex));
             }
         }
         else {
