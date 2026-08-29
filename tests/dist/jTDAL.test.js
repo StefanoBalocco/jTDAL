@@ -112,7 +112,7 @@ for (const target of targets) {
             t.is(result, expected);
         });
         test(prefix + ': static FALSE should skip malformed later attributes', (t) => {
-            const template = '<div data-tdal-condition="FALSE" data-tdal-attributes="title STRING:{?flag}">drop</div><span>keep</span>';
+            const template = '<div data-tdal-condition="FALSE" data-tdal-attributes="title REPEAT/item">drop</div><span>keep</span>';
             const compiled = templateEngine.CompileToFunction(template);
             const result = compiled({});
             t.is(result, '<span>keep</span>');
@@ -159,13 +159,6 @@ for (const target of targets) {
             const template = '<div data-tdal-condition="!TRUE">Never shown</div>';
             const compiled = templateEngine.CompileToFunction(template);
             const result = compiled(testData);
-            t.is(result, expected);
-        });
-        test(prefix + ': should handle STRING: expression as condition', (t) => {
-            const expected = '<div>Shown</div>';
-            const template = '<div data-tdal-condition="STRING:foo">Shown</div>';
-            const compiled = templateEngine.CompileToFunction(template);
-            const result = compiled({});
             t.is(result, expected);
         });
     }
@@ -277,10 +270,27 @@ for (const target of targets) {
             t.is(result, expected);
         });
         test(prefix + ': static repeat drop should skip malformed later omittag', (t) => {
-            const template = '<div data-tdal-repeat="item FALSE" data-tdal-omittag="STRING:{?flag}">drop</div><span>keep</span>';
+            const template = '<div data-tdal-repeat="item FALSE" data-tdal-omittag="REPEAT/item">drop</div><span>keep</span>';
             const compiled = templateEngine.CompileToFunction(template);
             const result = compiled({});
             t.is(result, '<span>keep</span>');
+        });
+        test(prefix + ': should isolate repeat state across nested repeat iterations', (t) => {
+            const data = {
+                groups: [
+                    { name: 'G1', items: ['a1', 'a2', 'a3'] },
+                    { name: 'G2', items: ['b1'] }
+                ]
+            };
+            const expected = '<div>[<span>G1</span><ul><li>a1</li><li>a2</li><li>a3</li></ul><span>G1</span><span>1</span></div>' +
+                '<div>[<span>G2</span><ul><li>b1</li></ul><span>G2</span><span>2</span><span>G2</span></div>';
+            const template = '<div data-tdal-repeat="group groups">[<span data-tdal-content="group/name">N</span>' +
+                '<ul><li data-tdal-repeat="item group/items" data-tdal-content="item">I</li></ul>' +
+                '<span data-tdal-content="group/name">N</span><span data-tdal-content="REPEAT/group/number">0</span>' +
+                '<span data-tdal-condition="REPEAT/group/last" data-tdal-content="group/name">LAST</span></div>';
+            const compiled = templateEngine.CompileToFunction(template);
+            const result = compiled(data);
+            t.is(result, expected);
         });
     }
     {
@@ -320,88 +330,6 @@ for (const target of targets) {
             const result = compiled(testData);
             t.is(result, expected);
         });
-        test(prefix + ': should handle STRING: prefix', (t) => {
-            const expected = '<span>Static text</span>';
-            const template = '<span data-tdal-content="STRING:Static text">Default</span>';
-            const compiled = templateEngine.CompileToFunction(template);
-            const result = compiled(testData);
-            t.is(result, expected);
-        });
-        test(prefix + ': should handle STRING: with placeholders', (t) => {
-            const expected = '<span>Hello World!</span>';
-            const template = '<span data-tdal-content="STRING:Hello {stringName}!">Default</span>';
-            const compiled = templateEngine.CompileToFunction(template);
-            const result = compiled(testData);
-            t.is(result, expected);
-        });
-        {
-            prefix = tag + ' data-tdal-content: should handle conditional strings';
-            test(prefix + ' when condition is true', (t) => {
-                const expected = '<span>Welcome!</span>';
-                const template = '<span data-tdal-content="STRING:{?variableFlag}Welcome!{/?}{?!variableFlag}Please login{/?}">Default</span>';
-                const compiled = templateEngine.CompileToFunction(template);
-                const result = compiled({ variableFlag: true });
-                t.is(result, expected);
-            });
-            test(prefix + ' when condition is false', (t) => {
-                const expected = '<span>Please login</span>';
-                const template = '<span data-tdal-content="STRING:{?variableFlag}Welcome!{/?}{?!variableFlag}Please login{/?}">Default</span>';
-                const compiled = templateEngine.CompileToFunction(template);
-                const result = compiled({ variableFlag: false });
-                t.is(result, expected);
-            });
-            test(prefix + ' with static TRUE keyword', (t) => {
-                const expected = '<span>Hello World!</span>';
-                const template = '<span data-tdal-content="STRING:Hello {?TRUE}World{/?}!">Default</span>';
-                const compiled = templateEngine.CompileToFunction(template);
-                const result = compiled(testData);
-                t.is(result, expected);
-            });
-            test(prefix + ' with static FALSE keyword', (t) => {
-                const expected = '<span>Hello !</span>';
-                const template = '<span data-tdal-content="STRING:Hello {?FALSE}World{/?}!">Default</span>';
-                const compiled = templateEngine.CompileToFunction(template);
-                const result = compiled(testData);
-                t.is(result, expected);
-            });
-            test(prefix + ' with same-name nested conditions', (t) => {
-                const expected = '<span>ABC</span>';
-                const template = '<span data-tdal-content="STRING:{?booleanTrue}A{?booleanTrue}B{/?}C{/?}">Default</span>';
-                const compiled = templateEngine.CompileToFunction(template);
-                const result = compiled(testData);
-                t.is(result, expected);
-            });
-            test(prefix + ' with static FALSE ignores its subtree', (t) => {
-                const expected = '<span>Hello !</span>';
-                const template = '<span data-tdal-content="STRING:Hello {?FALSE}{stringName}{/?}!">Default</span>';
-                const compiled = templateEngine.CompileToFunction(template);
-                const result = compiled(testData);
-                t.is(result, expected);
-            });
-            test(prefix + ' throws for an unclosed condition', (t) => {
-                const template = '<span data-tdal-content="STRING:{?booleanTrue}Text">Default</span>';
-                t.throws(() => templateEngine.CompileToFunction(template), { message: 'ParseString: Unclosed tag' });
-            });
-            test(prefix + ' throws for an unopened close', (t) => {
-                const template = '<span data-tdal-content="STRING:Text{/?}">Default</span>';
-                t.throws(() => templateEngine.CompileToFunction(template), { message: 'ParseString: Unopened tag' });
-            });
-            test(prefix + ' throws for a bare unopened close', (t) => {
-                const template = '<span data-tdal-content="STRING:{/?}">Default</span>';
-                t.throws(() => templateEngine.CompileToFunction(template), { message: 'ParseString: Unopened tag' });
-            });
-            test(prefix + ' throws for a named close', (t) => {
-                const template = '<span data-tdal-content="STRING:{?booleanTrue}x{/booleanTrue}">Default</span>';
-                t.throws(() => templateEngine.CompileToFunction(template), { message: 'ParseString: Unclosed tag' });
-            });
-            test(prefix + ' keeps an invalid opener literal', (t) => {
-                const expected = '<span>{?not valid}</span>';
-                const template = '<span data-tdal-content="STRING:{?booleanTrue}{?not valid}{/?}">Default</span>';
-                const compiled = templateEngine.CompileToFunction(template);
-                const result = compiled(testData);
-                t.is(result, expected);
-            });
-        }
     }
     {
         prefix = tag + ' data-tdal-replace';
@@ -441,7 +369,7 @@ for (const target of targets) {
             t.is(result, expected);
         });
         test(prefix + ': static replace drop should skip malformed later attributes', (t) => {
-            const template = '<div data-tdal-replace="FALSE" data-tdal-attributes="title STRING:{?flag}">drop</div><span>keep</span>';
+            const template = '<div data-tdal-replace="FALSE" data-tdal-attributes="title REPEAT/item">drop</div><span>keep</span>';
             const compiled = templateEngine.CompileToFunction(template);
             const result = compiled({});
             t.is(result, '<span>keep</span>');
@@ -484,9 +412,9 @@ for (const target of targets) {
             const result = compiled(testData);
             t.is(result, expected);
         });
-        test(prefix + ': should handle STRING: in attributes', (t) => {
-            const expected = '<a href="https://www.example.org/about">Link</a>';
-            const template = '<a data-tdal-attributes="href STRING:https://www.example.org/{stringPage}">Link</a>';
+        test(prefix + ': should handle a data path in attributes', (t) => {
+            const expected = '<a href="about">Link</a>';
+            const template = '<a data-tdal-attributes="href stringPage">Link</a>';
             const compiled = templateEngine.CompileToFunction(template);
             const result = compiled(testData);
             t.is(result, expected);
@@ -494,13 +422,6 @@ for (const target of targets) {
         test(prefix + ': if attribute value is empty, remove it', (t) => {
             const expected = '<a>Link</a>';
             const template = '<a data-tdal-attributes="href stringEmpty" href="http://www.example.org">Link</a>';
-            const compiled = templateEngine.CompileToFunction(template);
-            const result = compiled(testData);
-            t.is(result, expected);
-        });
-        test(prefix + ': if attribute STRING value is empty, remove it', (t) => {
-            const expected = '<a>Link</a>';
-            const template = '<a data-tdal-attributes="href STRING:{stringEmpty}" href="http://www.example.org">Link</a>';
             const compiled = templateEngine.CompileToFunction(template);
             const result = compiled(testData);
             t.is(result, expected);
@@ -533,8 +454,8 @@ for (const target of targets) {
             t.is(result, '<a href="javascript:alert(1)" onclick="alert(2)">Link</a>');
         });
         test(prefix + ': should handle namespaced attributes like xlink:href', (t) => {
-            const expected = '<use xlink:href="#b"></use>';
-            const template = '<use xlink:href="#a" data-tdal-attributes="xlink:href STRING:#b"></use>';
+            const expected = '<use xlink:href="/test.jpg"></use>';
+            const template = '<use xlink:href="#a" data-tdal-attributes="xlink:href stringPath"></use>';
             const compiled = templateEngine.CompileToFunction(template);
             const result = compiled(testData);
             t.is(result, expected);
@@ -573,6 +494,14 @@ for (const target of targets) {
                 t.is(result, expected);
             });
         }
+        test(prefix + ': should preserve outer whitespace and negation in raw condition and omittag expressions', (t) => {
+            const conditionTemplate = '<div data-tdal-condition=" !visible ">Content</div>';
+            const omitTemplate = '<span data-tdal-omittag=" !visible ">Content</span>';
+            t.is(templateEngine.CompileToFunction(conditionTemplate)({ visible: false }), '<div>Content</div>');
+            t.is(templateEngine.CompileToFunction(conditionTemplate)({ visible: true }), '');
+            t.is(templateEngine.CompileToFunction(omitTemplate)({ visible: false }), 'Content');
+            t.is(templateEngine.CompileToFunction(omitTemplate)({ visible: true }), '<span>Content</span>');
+        });
     }
     {
         prefix = tag + ' Macros';
@@ -665,6 +594,17 @@ for (const target of targets) {
             t.true(compiled.includes('r["REPEAT"]["item"]={'));
             t.is(engine.CompileToFunction(template)(testData), '<li><span>1</span></li><li><span>2</span></li><li><span>3</span></li>');
         });
+        test(prefix + ': should resolve macro dynamic content against the enclosing repeat item for every iteration', (t) => {
+            templateEngine.MacroAdd('item-label', '<b data-tdal-content="item/label">M</b>');
+            const data = {
+                items: [{ label: 'L1' }, { label: 'L2' }]
+            };
+            const expected = '<div><i><b>L1</b></i><u>L1</u></div><div><i><b>L2</b></i><u>L2</u></div>';
+            const template = '<div data-tdal-repeat="item items"><i data-tdal-content="structure MACRO:item-label">M</i><u data-tdal-content="item/label">L</u></div>';
+            const compiled = templateEngine.CompileToFunction(template);
+            const result = compiled(data);
+            t.is(result, expected);
+        });
         test(prefix + ': should preserve comments in macro when strip is false', (t) => {
             const noStripEngine = new jTDAL(true, false);
             const expected = '<div><!-- comment --><b>Hello</b></div>';
@@ -698,8 +638,8 @@ for (const target of targets) {
     {
         prefix = tag + ' Combined attributes';
         test(prefix + ': should process repeat with attributes', (t) => {
-            const expected = '<img src="https://www.example.org/1.jpg"/><img src="https://www.example.org/2.jpg"/><img src="https://www.example.org/3.jpg"/>';
-            const template = '<img data-tdal-repeat="id arrayNumbers" data-tdal-attributes="src STRING:https://www.example.org/{id}.jpg" />';
+            const expected = '<img src="1"/><img src="2"/><img src="3"/>';
+            const template = '<img data-tdal-repeat="id arrayNumbers" data-tdal-attributes="src id" />';
             const compiled = templateEngine.CompileToFunction(template);
             const result = compiled(testData);
             t.is(result, expected);
@@ -775,15 +715,15 @@ for (const target of targets) {
         {
             prefix = tag + ' Combined attributes should process attributes with condition';
             test(prefix + ': when condition is true', (t) => {
-                const expected = '<a href="https://www.example.org">Click here</a>';
-                const template = '<a data-tdal-condition="variableFlag" data-tdal-attributes="href stringUrl" data-tdal-content="STRING:Click here">Link</a>';
+                const expected = '<a href="https://www.example.org">Hello World</a>';
+                const template = '<a data-tdal-condition="variableFlag" data-tdal-attributes="href stringUrl" data-tdal-content="string">Link</a>';
                 const compiled = templateEngine.CompileToFunction(template);
                 const result = compiled({ ...testData, variableFlag: true });
                 t.is(result, expected);
             });
             test(prefix + ': when condition is false', (t) => {
                 const expected = '';
-                const template = '<a data-tdal-condition="variableFlag" data-tdal-attributes="href stringUrl" data-tdal-content="STRING:Click here">Link</a>';
+                const template = '<a data-tdal-condition="variableFlag" data-tdal-attributes="href stringUrl" data-tdal-content="string">Link</a>';
                 const compiled = templateEngine.CompileToFunction(template);
                 const result = compiled({ ...testData, variableFlag: false });
                 t.is(result, expected);
@@ -914,20 +854,6 @@ for (const target of targets) {
                 const result = compiled(testData);
                 t.is(result, expected);
             });
-            test(prefix + ': should emit JSON.stringify-style literals for static text with mixed quotes', (t) => {
-                const engine = new jTDAL();
-                const templateQuotes = '<div data-tdal-condition="TRUE">She said "hello" and \'goodbye\'</div>';
-                const compiledQuotes = engine.CompileToString(templateQuotes);
-                t.true(compiledQuotes.includes('"<div>She said \\"hello\\" and \'goodbye\'</div>"'));
-                t.false(compiledQuotes.includes('`She said'));
-                t.false(compiledQuotes.includes("'She said"));
-                t.is(engine.CompileToFunction(templateQuotes)(testData), '<div>She said "hello" and \'goodbye\'</div>');
-                const templateBacktick = '<div data-tdal-condition="TRUE">She said "hello", \'goodbye\', and `maybe`</div>';
-                const compiledBacktick = engine.CompileToString(templateBacktick);
-                t.true(compiledBacktick.includes('"<div>She said \\"hello\\", \'goodbye\', and `maybe`</div>"'));
-                t.false(compiledBacktick.includes('`She said'));
-                t.is(engine.CompileToFunction(templateBacktick)(testData), '<div>She said "hello", \'goodbye\', and `maybe`</div>');
-            });
         }
         test(prefix + ': should handle comments removal when strip is true', (t) => {
             const expected = '<div>Before</div><div>After</div>';
@@ -1007,6 +933,13 @@ for (const target of targets) {
             const template = '<div data-tdal-content="/item">Default</div>';
             t.throws(() => templateEngine.CompileToFunction(template), { message: 'ParsePath: Invalid path length' });
         });
+        test(prefix + ': should ignore an unknown foo:bar directive', (t) => {
+            const expected = '<span>Default</span>';
+            const template = '<span data-tdal-content="foo:bar">Default</span>';
+            const compiled = templateEngine.CompileToFunction(template);
+            const result = compiled(testData);
+            t.is(result, expected);
+        });
         {
             prefix = tag + ' Edge cases and special scenarios: should handle trim option';
             test(prefix + ': when trim is true', (t) => {
@@ -1028,45 +961,45 @@ for (const target of targets) {
         {
             prefix = tag + ' Edge cases and special scenarios: should handle falsy values';
             test(prefix + ': when value is null', (t) => {
-                const expected = '<span>Default</span>';
-                const template = '<span data-tdal-content="variableValue | STRING:Default">Original</span>';
+                const expected = '<span>Hello World</span>';
+                const template = '<span data-tdal-content="variableValue | string">Original</span>';
                 const compiled = templateEngine.CompileToFunction(template);
-                const result = compiled({ variableValue: null });
+                const result = compiled({ ...testData, variableValue: null });
                 t.is(result, expected);
             });
             test(prefix + ': when value is undefined', (t) => {
-                const expected = '<span>Default</span>';
-                const template = '<span data-tdal-content="variableValue | STRING:Default">Original</span>';
+                const expected = '<span>Hello World</span>';
+                const template = '<span data-tdal-content="variableValue | string">Original</span>';
                 const compiled = templateEngine.CompileToFunction(template);
-                const result = compiled({ variableValue: undefined });
+                const result = compiled({ ...testData, variableValue: undefined });
                 t.is(result, expected);
             });
             test(prefix + ': when value is 0', (t) => {
-                const expected = '<span>Default</span>';
-                const template = '<span data-tdal-content="numberZero | STRING:Default">Original</span>';
+                const expected = '<span>Hello World</span>';
+                const template = '<span data-tdal-content="numberZero | string">Original</span>';
                 const compiled = templateEngine.CompileToFunction(template);
-                const result = compiled({ numberZero: 0 });
+                const result = compiled({ ...testData, numberZero: 0 });
                 t.is(result, expected);
             });
             test(prefix + ': when value is an empty string', (t) => {
-                const expected = '<span>Default</span>';
-                const template = '<span data-tdal-content="stringEmpty | STRING:Default">Original</span>';
+                const expected = '<span>Hello World</span>';
+                const template = '<span data-tdal-content="stringEmpty | string">Original</span>';
                 const compiled = templateEngine.CompileToFunction(template);
-                const result = compiled({ stringEmpty: '' });
+                const result = compiled(testData);
                 t.is(result, expected);
             });
             test(prefix + ': when value is an empty array', (t) => {
                 const expected = '<span></span>';
-                const template = '<span data-tdal-content="arrayEmpty | STRING:Default">Original</span>';
+                const template = '<span data-tdal-content="arrayEmpty | string">Original</span>';
                 const compiled = templateEngine.CompileToFunction(template);
-                const result = compiled({ arrayEmpty: [] });
+                const result = compiled(testData);
                 t.is(result, expected);
             });
             test(prefix + ': when value is an empty object', (t) => {
                 const expected = '<span></span>';
-                const template = '<span data-tdal-content="objectEmpty | STRING:Default">Original</span>';
+                const template = '<span data-tdal-content="objectEmpty | string">Original</span>';
                 const compiled = templateEngine.CompileToFunction(template);
-                const result = compiled({ objectEmpty: {} });
+                const result = compiled(testData);
                 t.is(result, expected);
             });
         }
@@ -1167,7 +1100,7 @@ for (const target of targets) {
             let expected = '<div>';
             const levels = 10;
             for (let i = 0; i < levels; i++) {
-                expected += `<div data-value="Level ${i}">`;
+                expected += `<div data-value="Hello World">`;
             }
             for (let i = 0; i < levels; i++) {
                 expected += '</div>';
@@ -1175,7 +1108,7 @@ for (const target of targets) {
             expected += '</div>';
             let template = '<div data-tdal-condition="TRUE">';
             for (let i = 0; i < levels; i++) {
-                template += `<div data-tdal-attributes="data-value STRING:Level ${i}">`;
+                template += `<div data-tdal-attributes="data-value string">`;
             }
             for (let i = 0; i < levels; i++) {
                 template += '</div>';
@@ -1184,6 +1117,98 @@ for (const target of targets) {
             const compiled = templateEngine.CompileToFunction(template);
             const result = compiled(testData);
             t.is(result, expected);
+        });
+    }
+    {
+        prefix = tag + ' Generated source';
+        test(prefix + ': should emit a single template literal for static output', (t) => {
+            const engine = new jTDAL();
+            const compiled = engine.CompileToString('<div><span>Plain HTML</span></div>');
+            t.true(compiled.includes('return (`<div><span>Plain HTML</span></div>`).trim()'));
+        });
+        test(prefix + ': should emit interpolations for dynamic fragments', (t) => {
+            const engine = new jTDAL();
+            const compiled = engine.CompileToString('<span data-tdal-content="string">Default</span>');
+            t.true(compiled.includes('return (`<span>${'));
+            t.true(compiled.includes('${'));
+        });
+        test(prefix + ': should not emit quoted-string concatenation', (t) => {
+            const engine = new jTDAL();
+            const compiled = engine.CompileToString('<div data-tdal-condition="booleanTrue">Content</div>');
+            t.false(compiled.includes('"+"'));
+            t.false(compiled.includes('\\"\\"'));
+        });
+        test(prefix + ': should emit a backtick attribute branch for non-boolean dynamic attributes', (t) => {
+            const engine = new jTDAL();
+            const template = '<a data-tdal-attributes="href stringUrl">Link</a>';
+            const compiled = engine.CompileToString(template);
+            t.true(compiled.includes('` href="${q}"`'));
+            t.false(compiled.includes(`?' href="'+q+'"'`));
+            t.is(engine.CompileToFunction(template)(testData), '<a href="https://www.example.org">Link</a>');
+            const staticTemplate = '<a data-tdal-attributes="href stringEmpty" href="http://www.example.org">Link</a>';
+            t.is(engine.CompileToFunction(staticTemplate)(testData), '<a>Link</a>');
+        });
+        test(prefix + ': should keep an existing quoted static attribute as fallback for a falsy dynamic value', (t) => {
+            const template = '<i title="d" data-tdal-attributes="title v | TRUE">x</i>';
+            const result = templateEngine.CompileToFunction(template)({ v: false });
+            t.is(result, '<i title="d">x</i>');
+            const compiled = templateEngine.CompileToString(template);
+            t.true(compiled.includes('` title="${q}"`'));
+            t.false(compiled.includes(`?' title="'+q+'"'`));
+        });
+        test(prefix + ': should copy a physical carriage return into generated source', (t) => {
+            const engine = new jTDAL(false);
+            const cr = String.fromCharCode(13);
+            const template = '<div>a' + cr + 'b</div>';
+            const compiled = engine.CompileToString(template);
+            t.true(compiled.includes('a' + cr + 'b'));
+            t.false(compiled.includes('a\\rb'));
+        });
+        test(prefix + ': should copy a physical CRLF into generated source and keep the line feed physical', (t) => {
+            const engine = new jTDAL(false);
+            const cr = String.fromCharCode(13);
+            const template = '<div>a' + cr + '\n' + 'b</div>';
+            const compiled = engine.CompileToString(template);
+            t.true(compiled.includes('a' + cr + '\n' + 'b'));
+            t.false(compiled.includes('a\\r\nb'));
+            t.is(engine.CompileToFunction(template)({}), '<div>a\nb</div>');
+        });
+        test(prefix + ': should emit branch template literals for conditions', (t) => {
+            const engine = new jTDAL();
+            const compiled = engine.CompileToString('<div data-tdal-condition="booleanTrue">Content</div>');
+            t.true(compiled.includes('?`<div>Content</div>`:``'));
+        });
+        test(prefix + ': should emit a nested template literal for repeat bodies', (t) => {
+            const engine = new jTDAL();
+            const compiled = engine.CompileToString('<li data-tdal-repeat="item arrayStrings" data-tdal-content="item">Default</li>');
+            t.true(compiled.includes('return o+`'));
+        });
+        test(prefix + ': should emit an empty template literal for an empty template', (t) => {
+            const engine = new jTDAL();
+            const compiled = engine.CompileToString('');
+            t.true(compiled.includes('return (``).trim()'));
+            t.is(engine.CompileToFunction('')({}), '');
+        });
+        test(prefix + ': should escape backticks in static text', (t) => {
+            const engine = new jTDAL();
+            const template = '<div>a ` b</div>';
+            const compiled = engine.CompileToString(template);
+            t.true(compiled.includes('a \\` b'));
+            t.is(engine.CompileToFunction(template)({}), template);
+        });
+        test(prefix + ': should escape ${ in static text', (t) => {
+            const engine = new jTDAL();
+            const template = '<div>a ${ b</div>';
+            const compiled = engine.CompileToString(template);
+            t.true(compiled.includes('a \\${ b'));
+            t.is(engine.CompileToFunction(template)({}), template);
+        });
+        test(prefix + ': should escape backslashes in static text', (t) => {
+            const engine = new jTDAL();
+            const template = '<div>a \\ b</div>';
+            const compiled = engine.CompileToString(template);
+            t.true(compiled.includes('a \\\\ b'));
+            t.is(engine.CompileToFunction(template)({}), template);
         });
     }
 }

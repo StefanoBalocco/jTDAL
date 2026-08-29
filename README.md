@@ -14,8 +14,8 @@
 **Template Attribute Language for JavaScript**
 
 [![npm](https://img.shields.io/npm/v/%40stefanobalocco%2Fjtdal.svg)](https://www.npmjs.com/package/@stefanobalocco/jtdal)
-[![License](https://img.shields.io/github/license/stefanobalocco/jTDAL)](https://github.com/StefanoBalocco/jTDAL/blob/master/LICENSE)
-![GZipped size](https://img.badgesize.io/stefanobalocco/jTDAL/master/dist/jTDAL.min.js?compression=gzip)
+[![License](https://img.shields.io/github/license/stefanobalocco/jTDAL)](https://github.com/StefanoBalocco/jTDAL/blob/main/LICENSE)
+![GZipped size](https://img.badgesize.io/stefanobalocco/jTDAL/main/dist/jTDAL.min.js?compression=gzip)
 
 Small template engine based on Zope TAL, using data attributes.
 
@@ -30,6 +30,8 @@ Runs on Node.js and in browsers. Written in TypeScript.
 ## Why another template engine?
 
 I wanted a fast, attribute-based JavaScript template engine and couldn't find one. Mustache is great, but its syntax always felt foreign to me. With data attributes, templates stay valid HTML — you can design them in any WYSIWYG editor or preview them in a browser without rendering data.
+
+Changelog available at the end of the README.
 
 ## Installation and Usage
 
@@ -130,11 +132,11 @@ missing/path | fallback/path | last/resort
 
 A present value that is falsy falls through to the next fallback. Values such as `0`, `false`, `""`, `null`, `undefined`, and `NaN` therefore do not stop the chain.
 
-In `data-tdal-content`, `data-tdal-replace`, `data-tdal-condition`, `data-tdal-attributes`, and `data-tdal-omittag`, a path chain may end with a single `| STRING:` fallback. `STRING:` and `MACRO:` expressions do not accept `|` fallbacks.
+`MACRO:` expressions do not accept `|` fallbacks.
 
 #### Falsy Values
 
-Whenever jTDAL evaluates an expression in a boolean context, it follows JavaScript truthiness and additionally treats empty arrays and empty objects as false. Boolean contexts include `{?condition}...{/?}` conditional blocks, `data-tdal-condition`, `data-tdal-omittag`, boolean attributes, and `!` negation.
+Whenever jTDAL evaluates an expression in a boolean context, it follows JavaScript truthiness and additionally treats empty arrays and empty objects as false. Boolean contexts include `data-tdal-condition`, `data-tdal-omittag`, boolean attributes, and `!` negation.
 
 All other values follow JavaScript truthiness. Empty arrays and objects are falsy only in boolean contexts; content and replace fallback evaluation uses JavaScript truthiness, so they do not select a fallback.
 
@@ -153,32 +155,6 @@ Prefix with `!` to negate a boolean:
 - `GLOBAL` — Search in global context, bypassing local scopes (e.g. `GLOBAL/variableName`)
 - `REPEAT` — Search in the repeat context, bypassing local scopes (e.g. `REPEAT/item/number`)
 
-### String Expressions
-
-A string expression generates text using path expressions as placeholders. Prefix with `STRING:`:
-
-```plaintext
-STRING:This is text with {placeholder} and {another/path}
-```
-
-Placeholders are replaced with resolved path values.
-
-**Conditional Inclusion:**
-
-Use `{?condition}...{/?}` to conditionally include text:
-
-```plaintext
-STRING:Hello {name}{?user/isPremium} (Premium){/?}
-```
-
-Use `{?!condition}...{/?}` to negate:
-
-```plaintext
-STRING:Status: {?!isActive}Inactive{/?}{?isActive}Active{/?}
-```
-
-An unclosed conditional tag or an unmatched `{/?}` causes a compile-time error.
-
 ## Attributes
 
 The template processor applies attributes in this order:
@@ -192,7 +168,7 @@ The template processor applies attributes in this order:
 
 ### data-tdal-condition
 
-Renders the tag only if the expression evaluates to true; removes it otherwise. The expression can be a path with optional `!` negation, a `STRING:` expression, or a chain of fallbacks separated by `|`.
+Renders the tag only if the expression evaluates to true; removes it otherwise. The expression can be a path with optional `!` negation or a chain of fallbacks separated by `|`.
 
 **Examples:**
 
@@ -247,7 +223,7 @@ The `REPEAT` object provides:
 </div>
 
 <!-- Using REPEAT variables -->
-<tr data-tdal-repeat="row rows" data-tdal-attributes="class STRING:{?REPEAT/row/odd}odd{/?}{?REPEAT/row/even}even{/?}">
+<tr data-tdal-repeat="row rows" data-tdal-attributes="data-index REPEAT/row/index">
   <td data-tdal-content="REPEAT/row/number">Index</td>
   <td data-tdal-content="row/value">Value</td>
 </tr>
@@ -263,7 +239,7 @@ The `REPEAT` object provides:
 
 ### data-tdal-content
 
-Replaces the tag's inner content with the result of the expression. The expression can be a path with optional `!` negation and a single `| STRING:` fallback, a `STRING:` expression, or a `MACRO:` reference (see Fallback Paths). Prefix with `structure` to insert raw HTML without escaping. If the expression evaluates to false, the content is removed.
+Replaces the tag's inner content with the result of the expression. The expression can be a path with optional `!` negation or a `MACRO:` reference (see Fallback Paths). Prefix with `structure` to insert raw HTML without escaping. If the expression evaluates to false, the content is removed.
 
 **Examples:**
 
@@ -271,11 +247,8 @@ Replaces the tag's inner content with the result of the expression. The expressi
 <!-- Simple content replacement -->
 <span data-tdal-content="username">Default username</span>
 
-<!-- String template -->
-<h1 data-tdal-content="STRING:Welcome, {user/name}!">Welcome!</h1>
-
 <!-- With fallback -->
-<div data-tdal-content="errorMessage | STRING:No errors">Error</div>
+<div data-tdal-content="errorMessage | defaultMessage">Error</div>
 
 <!-- Using a macro -->
 <div data-tdal-content="MACRO:userCard">User info</div>
@@ -294,9 +267,6 @@ Replaces the entire tag and its contents with the result of the expression. Acce
 <!-- Replace tag with value -->
 <span data-tdal-replace="status">Status</span>
 
-<!-- String template replacement (structure renders raw HTML) -->
-<span data-tdal-replace="structure STRING:<strong>{username}</strong>">Username</span>
-
 <!-- Using a macro -->
 <div data-tdal-replace="MACRO:navigationMenu">Nav</div>
 
@@ -306,7 +276,7 @@ Replaces the entire tag and its contents with the result of the expression. Acce
 
 ### data-tdal-attributes
 
-Sets or modifies tag attributes. Each pair follows the format `attribute expression`, separated by `;;`. Expressions can be a path with optional `!` negation and `|` fallbacks, or a `STRING:` expression. Append `?` to the attribute name for HTML5 boolean attributes: present when truthy, absent when falsy.
+Sets or modifies tag attributes. Each pair follows the format `attribute expression`, separated by `;;`. Expressions can be a path with optional `!` negation and `|` fallbacks. Append `?` to the attribute name for HTML5 boolean attributes: present when truthy, absent when falsy.
 
 **Examples:**
 
@@ -314,11 +284,8 @@ Sets or modifies tag attributes. Each pair follows the format `attribute express
 <!-- Dynamic single attribute -->
 <a href="#" data-tdal-attributes="href user/profileUrl">Profile</a>
 
-<!-- String template attribute -->
-<img data-tdal-attributes="src STRING:https://example.com/{imageId}.jpg" />
-
 <!-- Multiple attributes -->
-<a data-tdal-attributes="href link/url;;class STRING:btn btn-{type}">Link</a>
+<a data-tdal-attributes="href link/url;;class link/class">Link</a>
 
 <!-- Boolean flag attributes -->
 <input type="checkbox" data-tdal-attributes="checked? user/isActive" />
@@ -326,7 +293,7 @@ Sets or modifies tag attributes. Each pair follows the format `attribute express
 <option data-tdal-attributes="selected? isDefault">Default</option>
 
 <!-- Mixed attributes -->
-<input data-tdal-attributes="type STRING:checkbox;;checked? isEnabled;;disabled? isLocked" />
+<input data-tdal-attributes="type inputType;;checked? isEnabled;;disabled? isLocked" />
 
 <!-- Fallback to preserve existing value -->
 <img src="default.jpg" data-tdal-attributes="src dynamicUrl | TRUE" />
@@ -334,7 +301,7 @@ Sets or modifies tag attributes. Each pair follows the format `attribute express
 
 ### data-tdal-omittag
 
-Removes the tag wrapper while keeping its content when the expression evaluates to true. The expression can be a path with optional `!` negation, a `STRING:` expression, or a chain of fallbacks separated by `|`.
+Removes the tag wrapper while keeping its content when the expression evaluates to true. The expression can be a path with optional `!` negation or a chain of fallbacks separated by `|`.
 
 **Examples:**
 
@@ -362,7 +329,7 @@ Macros are reusable template fragments (equivalent to TAL's METAL or Mustache pa
 
 ```javascript
 const templateEngine = new jTDAL();
-const macro = `Hello, <span data-tdal-replace="name | STRING:World"></span>!`;
+const macro = `Hello, <span data-tdal-replace="name"></span>!`;
 templateEngine.MacroAdd("helloworld", macro);
 ```
 
@@ -399,3 +366,36 @@ In this example, the `helloworld` macro reads `name` within each loop iteration.
 ```html
 <div>Hello, Alice!</div><div>Hello, Bob!</div>
 ```
+
+## Changelog
+
+### v8.x
+- Removed `STRING:` expression support.
+- Switched generated templates from string concatenation to template literals.
+- Reworked repeat code generation.
+
+### v7.x
+- Replaced recursive parsing with a streaming stack-based parser.
+- Added stricter validation and template, script, and comment handling.
+
+### v6.x
+- Reorganized the project into `src`, `dist`, and `tests`.
+- Replaced the custom build script with tsBuild.
+
+### v5.x
+- Moved `trim` and `strip` configuration to the constructor.
+- Removed `trim` and `strip` parameters from compile and macro methods.
+
+### v4.x
+- Replaced the static namespace API with `jTDAL` instances.
+- Added `MACRO:` expressions and `MacroAdd`.
+
+### v3.x
+- Moved the package to ESM.
+
+### v2.x
+- Removed the jQuery dependency.
+- Added compiled-template APIs.
+
+### v1.x
+- Initial jQuery-based release.

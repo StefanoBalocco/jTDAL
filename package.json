@@ -21,7 +21,7 @@
     "type": "git",
     "url": "https://github.com/StefanoBalocco/jTDAL.git"
   },
-  "version": "7.0.3",
+  "version": "8.0.0",
   "keywords": [
     "template engine",
     "tal"
@@ -39,7 +39,7 @@
     "tests": "c8 --include=src --include=dist --exclude-after-remap --per-file --reporter=text --reporter=lcov ava tests/dist/*.test.js --verbose --serial"
   },
   "devDependencies": {
-    "@stefanobalocco/tsbuild": "^1",
+    "@stefanobalocco/tsbuild": "^2",
     "ava": "^8",
     "c8": "^12"
   }
