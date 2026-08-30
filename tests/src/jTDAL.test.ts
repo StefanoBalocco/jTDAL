@@ -270,24 +270,24 @@ for( const target of targets ) {
 		test( prefix + ': should always emit REPEAT metadata from generated code', ( t ) => {
 			const template: string = '<li data-tdal-repeat="item arrayStrings" data-tdal-content="item">Default</li>';
 			const compiled: string = templateEngine.CompileToString( template );
-			t.true( compiled.includes( 'r["REPEAT"]["item"]={' ) );
-			t.true( compiled.includes( 'delete r["REPEAT"]["item"]' ) );
-			t.true( compiled.includes( 'delete r["item"]' ) );
+			t.true( compiled.includes( 'r.REPEAT.item={' ) );
+			t.true( compiled.includes( 'delete r.REPEAT.item' ) );
+			t.true( compiled.includes( 'delete r.item' ) );
 			t.is( templateEngine.CompileToFunction( template )( testData ), '<li>A</li><li>B</li><li>C</li>' );
 		} );
 
 		test( prefix + ': should keep used REPEAT metadata in generated code', ( t ) => {
 			const template: string = '<li data-tdal-repeat="item arrayStrings" data-tdal-content="REPEAT/item/number">Default</li>';
 			const compiled: string = templateEngine.CompileToString( template );
-			t.true( compiled.includes( 'r["REPEAT"]["item"]={' ) );
+			t.true( compiled.includes( 'r.REPEAT.item={' ) );
 		} );
 
 		test( prefix + ': should keep used REPEAT metadata for self-closed repeats', ( t ) => {
 			const template: string = '<input data-tdal-repeat="item arrayStrings" data-tdal-content="REPEAT/item/number" />';
 			const compiled: string = templateEngine.CompileToString( template );
-			t.true( compiled.includes( 'r["REPEAT"]["item"]={' ) );
-			t.true( compiled.includes( 'delete r["REPEAT"]["item"]' ) );
-			t.true( compiled.includes( 'delete r["item"]' ) );
+			t.true( compiled.includes( 'r.REPEAT.item={' ) );
+			t.true( compiled.includes( 'delete r.REPEAT.item' ) );
+			t.true( compiled.includes( 'delete r.item' ) );
 			t.is( templateEngine.CompileToFunction( template )( testData ), '<input>1</input><input>2</input><input>3</input>' );
 		} );
 
@@ -606,7 +606,7 @@ for( const target of targets ) {
 			const template: string = '<div data-tdal-content="structure MACRO:repeat-declaration">Default</div>';
 			const compiled: string = templateEngine.CompileToString( template );
 			t.true( compiled.includes( 'r={REPEAT:{}}' ) );
-			t.true( compiled.includes( 'r["REPEAT"]["item"]={' ) );
+			t.true( compiled.includes( 'r.REPEAT.item={' ) );
 			t.is( templateEngine.CompileToFunction( template )( testData ), '<div><li>A</li><li>B</li><li>C</li></div>' );
 		} );
 
@@ -681,7 +681,7 @@ for( const target of targets ) {
 			const template: string = '<li data-tdal-repeat="item arrayStrings" data-tdal-content="structure MACRO:metadata-repeat-number">Default</li>';
 			const compiled: string = engine.CompileToString( template );
 
-			t.true( compiled.includes( 'r["REPEAT"]["item"]={' ) );
+			t.true( compiled.includes( 'r.REPEAT.item={' ) );
 			t.is( engine.CompileToFunction( template )( testData ), '<li><span>1</span></li><li><span>2</span></li><li><span>3</span></li>' );
 		} );
 
@@ -1291,13 +1291,13 @@ for( const target of targets ) {
 		test( prefix + ': should emit a single template literal for static output', ( t ) => {
 			const engine: jTDALOriginal = new jTDAL();
 			const compiled: string = engine.CompileToString( '<div><span>Plain HTML</span></div>' );
-			t.true( compiled.includes( 'return (`<div><span>Plain HTML</span></div>`).trim()' ) );
+			t.true( compiled.includes( 'return`<div><span>Plain HTML</span></div>`.trim()' ) );
 		} );
 
 		test( prefix + ': should emit interpolations for dynamic fragments', ( t ) => {
 			const engine: jTDALOriginal = new jTDAL();
 			const compiled: string = engine.CompileToString( '<span data-tdal-content="string">Default</span>' );
-			t.true( compiled.includes( 'return (`<span>${' ) );
+			t.true( compiled.includes( 'return`<span>${' ) );
 			t.true( compiled.includes( '${' ) );
 		} );
 
@@ -1364,7 +1364,7 @@ for( const target of targets ) {
 		test( prefix + ': should emit an empty template literal for an empty template', ( t ) => {
 			const engine: jTDALOriginal = new jTDAL();
 			const compiled: string = engine.CompileToString( '' );
-			t.true( compiled.includes( 'return (``).trim()' ) );
+			t.true( compiled.includes( 'return``' ) );
 			t.is( engine.CompileToFunction( '' )( {} ), '' );
 		} );
 
@@ -1390,6 +1390,182 @@ for( const target of targets ) {
 			const compiled: string = engine.CompileToString( template );
 			t.true( compiled.includes( 'a \\\\ b' ) );
 			t.is( engine.CompileToFunction( template )( {} ), template );
+		} );
+	}
+
+	{
+		prefix = tag + ' Generated property access';
+		test( prefix + ': should emit dot access for valid identifiers', ( t ) => {
+			const engine: jTDALOriginal = new jTDAL();
+			engine.MacroAdd( 'validMacro', '<b>X</b>' );
+			const template: string = '<li data-tdal-repeat="item arrayStrings" data-tdal-content="structure MACRO:validMacro">Default</li>';
+			const compiled: string = engine.CompileToString( template );
+			t.true( compiled.includes( 'r.item=(!0===q)?v:q[v];' ) );
+			t.true( compiled.includes( 'r.REPEAT.item={' ) );
+			t.true( compiled.includes( 'delete r.REPEAT.item,delete r.item' ) );
+			t.true( compiled.includes( 'm.validMacro()' ) );
+			t.false( compiled.includes( 'q=true' ) );
+			t.is( engine.CompileToFunction( template )( testData ), '<li><b>X</b></li><li><b>X</b></li><li><b>X</b></li>' );
+		} );
+
+		test( prefix + ': should emit bracket access for names with hyphens or leading digits', ( t ) => {
+			const engine: jTDALOriginal = new jTDAL();
+			const hyphenTemplate: string = '<li data-tdal-repeat="my-item arrayStrings" data-tdal-content="my-item">Default</li>';
+			const hyphenCompiled: string = engine.CompileToString( hyphenTemplate );
+			t.true( hyphenCompiled.includes( 'r["my-item"]=(!0===q)?v:q[v];' ) );
+			t.true( hyphenCompiled.includes( 'r.REPEAT["my-item"]={' ) );
+			t.true( hyphenCompiled.includes( 'delete r.REPEAT["my-item"],delete r["my-item"]' ) );
+			t.is( engine.CompileToFunction( hyphenTemplate )( testData ), '<li>A</li><li>B</li><li>C</li>' );
+
+			const digitTemplate: string = '<li data-tdal-repeat="1st arrayStrings" data-tdal-content="1st">Default</li>';
+			const digitCompiled: string = engine.CompileToString( digitTemplate );
+			t.true( digitCompiled.includes( 'r["1st"]=(!0===q)?v:q[v];' ) );
+			t.is( engine.CompileToFunction( digitTemplate )( testData ), '<li>A</li><li>B</li><li>C</li>' );
+		} );
+
+		test( prefix + ': should emit bracket access for hyphenated macro names', ( t ) => {
+			const engine: jTDALOriginal = new jTDAL();
+			engine.MacroAdd( 'my-macro', '<b>Y</b>' );
+			const template: string = '<div data-tdal-content="structure MACRO:my-macro">Default</div>';
+			const compiled: string = engine.CompileToString( template );
+			t.true( compiled.includes( 'm["my-macro"]()' ) );
+			t.is( engine.CompileToFunction( template )( testData ), '<div><b>Y</b></div>' );
+		} );
+	}
+
+	{
+		prefix = tag + ' Generated resolver';
+		test( prefix + ': should emit the compact resolver with loose typeof and comma loop', ( t ) => {
+			const engine: jTDALOriginal = new jTDAL();
+			const compiled: string = engine.CompileToString( '<span data-tdal-content="string">Default</span>' );
+			t.true( compiled.includes( 'c=(a,c,e)=>{let z=a,y=c.split("/"),x=0,w,l=y.length,m=2&e;for(;x<l&&1!==z;)z="object"==typeof z&&null!==z&&void 0!==(w="function"==typeof z[y[x]]?z[y[x]](d,r):z[y[x]])&&w,x++,1&e&&(!1===z||x==l&&m&&!b(z))&&(z=d,e=0,x=0);return m?b(z):z}' ) );
+			t.true( compiled.includes( 'void 0!==' ) );
+			t.true( compiled.includes( 'null!==z' ) );
+			t.true( compiled.includes( '1!==z' ) );
+			t.true( compiled.includes( '!1===z' ) );
+			t.false( compiled.includes( '===typeof' ) );
+			t.false( compiled.includes( '!==typeof' ) );
+			const booleanCompiled: string = engine.CompileToString( '<span data-tdal-condition="booleanTrue">Shown</span>' );
+			t.true( booleanCompiled.includes( '"object"!=typeof v' ) );
+		} );
+	}
+
+	{
+		prefix = tag + ' Dynamic value handling';
+		test( prefix + ': should handle content values false, true, 0, NaN, and HTML', ( t ) => {
+			const engine: jTDALOriginal = new jTDAL();
+			const template: string = '<span data-tdal-content="v">Fallback</span>';
+			t.is( engine.CompileToFunction( template )( { v: false } ), '<span></span>' );
+			t.is( engine.CompileToFunction( template )( { v: true } ), '<span>Fallback</span>' );
+			t.is( engine.CompileToFunction( template )( { v: 0 } ), '<span>0</span>' );
+			t.is( engine.CompileToFunction( template )( { v: NaN } ), '<span></span>' );
+			t.is( engine.CompileToFunction( template )( { v: '<x>' } ), '<span>&lt;x&gt;</span>' );
+		} );
+
+		test( prefix + ': should emit inverted content ternary with loose typeof', ( t ) => {
+			const engine: jTDALOriginal = new jTDAL();
+			const compiled: string = engine.CompileToString( '<span data-tdal-content="v">Fallback</span>' );
+			t.true( compiled.includes( '${q=c(r,"v",1),!1===q||"string"!=typeof q&&("number"!=typeof q||isNaN(q))?!0!==q?``:' ) );
+			t.true( compiled.includes( ':String(q).replace(f,m=>s[m])}' ) );
+			t.false( compiled.includes( '!1!==q' ) );
+		} );
+
+		test( prefix + ': should handle value attributes false, true, 0, NaN, empty, and non-empty strings', ( t ) => {
+			const engine: jTDALOriginal = new jTDAL();
+			const template: string = '<a title="Static" data-tdal-attributes="title v">Link</a>';
+			t.is( engine.CompileToFunction( template )( { v: false } ), '<a>Link</a>' );
+			t.is( engine.CompileToFunction( template )( { v: NaN } ), '<a>Link</a>' );
+			t.is( engine.CompileToFunction( template )( { v: '' } ), '<a>Link</a>' );
+			t.is( engine.CompileToFunction( template )( { v: true } ), '<a title="Static">Link</a>' );
+			t.is( engine.CompileToFunction( template )( { v: 0 } ), '<a title="0">Link</a>' );
+			t.is( engine.CompileToFunction( template )( { v: 'x' } ), '<a title="x">Link</a>' );
+			const bareTemplate: string = '<a data-tdal-attributes="title v">Link</a>';
+			t.is( engine.CompileToFunction( bareTemplate )( { v: true } ), '<a title>Link</a>' );
+		} );
+
+		test( prefix + ': should emit inverted value attribute ternary with loose typeof', ( t ) => {
+			const engine: jTDALOriginal = new jTDAL();
+			const compiled: string = engine.CompileToString( '<a title="Static" data-tdal-attributes="title v">Link</a>' );
+			t.true( compiled.includes( '${q=c(r,"v",1),!1===q||(!q||"string"!=typeof q)&&("number"!=typeof q||isNaN(q))?!0!==q?``:' ) );
+			t.true( compiled.includes( '` title="${q}"`' ) );
+			t.false( compiled.includes( '!1!==q' ) );
+		} );
+	}
+
+	{
+		prefix = tag + ' Direct negated ternary inversion';
+		test( prefix + ': should invert condition ternary for direct negated resolver calls', ( t ) => {
+			const engine: jTDALOriginal = new jTDAL();
+			const template: string = '<div data-tdal-condition="!booleanTrue">Content</div>';
+			const compiled: string = engine.CompileToString( template );
+			t.true( compiled.includes( '${c(r,"booleanTrue",3)?``:`<div>Content</div>`}' ) );
+			t.false( compiled.includes( '!c(' ) );
+			t.is( engine.CompileToFunction( template )( testData ), '' );
+			t.is( engine.CompileToFunction( template )( { booleanTrue: false } ), '<div>Content</div>' );
+		} );
+
+		test( prefix + ': should keep leading !c for OR fallback conditions', ( t ) => {
+			const engine: jTDALOriginal = new jTDAL();
+			const template: string = '<div data-tdal-condition="!booleanTrue | booleanFalse">Content</div>';
+			const compiled: string = engine.CompileToString( template );
+			t.true( compiled.includes( '!c(r,"booleanTrue",3)||c(r,"booleanFalse",3)?' ) );
+			t.is( engine.CompileToFunction( template )( testData ), '' );
+			t.is( engine.CompileToFunction( template )( { booleanTrue: false } ), '<div>Content</div>' );
+		} );
+
+		test( prefix + ': should invert flag attribute ternary', ( t ) => {
+			const engine: jTDALOriginal = new jTDAL();
+			const template: string = '<input data-tdal-attributes="disabled? !booleanFalse" />';
+			const compiled: string = engine.CompileToString( template );
+			t.true( compiled.includes( '${c(r,"booleanFalse",3)?``:` disabled`}' ) );
+			t.false( compiled.includes( '!c(' ) );
+			t.is( engine.CompileToFunction( template )( testData ), '<input disabled/>' );
+			t.is( engine.CompileToFunction( template )( { booleanFalse: true } ), '<input/>' );
+		} );
+
+		test( prefix + ': should invert omittag prefix and both suffixes', ( t ) => {
+			const engine: jTDALOriginal = new jTDAL();
+			const template: string = '<span data-tdal-omittag="!booleanTrue">Content</span>';
+			const compiled: string = engine.CompileToString( template );
+			t.true( compiled.includes( '${c(r,"booleanTrue",3)?`' ) );
+			t.true( compiled.includes( ':``}' ) );
+			t.false( compiled.includes( '!c(' ) );
+			t.is( engine.CompileToFunction( template )( testData ), '<span>Content</span>' );
+			t.is( engine.CompileToFunction( template )( { booleanTrue: false } ), 'Content' );
+		} );
+
+		test( prefix + ': should invert omittag inside repeat bodies', ( t ) => {
+			const engine: jTDALOriginal = new jTDAL();
+			const template: string = '<li data-tdal-repeat="item arrayStrings" data-tdal-omittag="!REPEAT/item/first"><span data-tdal-content="item">Default</span></li>';
+			const compiled: string = engine.CompileToString( template );
+			t.true( compiled.includes( '${c(r,"REPEAT/item/first",2)?`' ) );
+			t.true( compiled.includes( ':``}' ) );
+			t.is( engine.CompileToFunction( template )( testData ), '<li><span>A</span></li><span>B</span><span>C</span>' );
+		} );
+
+		test( prefix + ': should keep q=!c for content and non-flag attribute negations', ( t ) => {
+			const engine: jTDALOriginal = new jTDAL();
+			const contentTemplate: string = '<span data-tdal-content="!booleanTrue">Default</span>';
+			const contentCompiled: string = engine.CompileToString( contentTemplate );
+			t.true( contentCompiled.includes( 'q=!c(r,"booleanTrue",3)' ) );
+			t.is( engine.CompileToFunction( contentTemplate )( testData ), '<span></span>' );
+
+			const attrTemplate: string = '<a title="S" data-tdal-attributes="title !booleanTrue">Link</a>';
+			const attrCompiled: string = engine.CompileToString( attrTemplate );
+			t.true( attrCompiled.includes( 'q=!c(r,"booleanTrue",3)' ) );
+			t.is( engine.CompileToFunction( attrTemplate )( testData ), '<a>Link</a>' );
+		} );
+	}
+
+	{
+		prefix = tag + ' Static literal preservation';
+		test( prefix + ': should keep generator-like tokens verbatim in static text', ( t ) => {
+			const engine: jTDALOriginal = new jTDAL();
+			const literal: string = 'q=!0===q?!c(r,"x",3)?y:z:delete r.REPEAT["k"],b="object"==typeof q&&null!==z';
+			const template: string = '<div>' + literal + '</div>';
+			const compiled: string = engine.CompileToString( template );
+			t.true( compiled.includes( 'return`<div>' + literal + '</div>`.trim()' ) );
+			t.is( engine.CompileToFunction( template )( {} ), '<div>' + literal + '</div>' );
 		} );
 	}
 }

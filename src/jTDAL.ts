@@ -34,10 +34,15 @@ export default class jTDAL {
   private static readonly _regexpPathSeparator: RegExp = /\s*\|\s*/;
   private static readonly _regexpTagEnd: RegExp = /\s*\/?>$/;
   private static readonly _regexpMacroName: RegExp = /^[a-zA-Z0-9-]+$/;
+  private static readonly _regexpPropertyName: RegExp = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
   private static readonly _HTML5VoidElements: Set<string> = new Set<string>( [ 'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr' ] );
   private readonly _trim: boolean;
   private readonly _strip: boolean;
   private _macros: Record<string, ParseResult> = {};
+
+  private static _propertyAccess( propertyName: string ): string {
+    return jTDAL._regexpPropertyName.test( propertyName ) ? '.' + propertyName : `["${ propertyName }"]`;
+  }
 
   private static _ParsePath( pathExpression: string, getBoolean: boolean, macros: Record<string, ParseResult>, result: ParseResult ): string {
     let returnValue: string = '';
@@ -53,10 +58,10 @@ export default class jTDAL {
           const macroName: string = currentPath.substring( 6 );
           if( Object.hasOwn( macros, macroName ) ) {
             // Public grammar permits MACRO: only in content and replace expressions.
-            returnValue += `m["${ macroName }"]()`;
+            returnValue += `m${ jTDAL._propertyAccess( macroName ) }()`;
             result[ 3 ].add( macroName );
           } else {
-            returnValue += 'false';
+            returnValue += '!1';
           }
           iL1 = cL1;
         } else {
@@ -68,18 +73,18 @@ export default class jTDAL {
             switch( path[ 0 ] ) {
               case 'FALSE': {
                 if( not ) {
-                  returnValue += 'true';
+                  returnValue += '!0';
                 } else {
-                  returnValue += 'false';
+                  returnValue += '!1';
                 }
                 iL1 = cL1;
                 break;
               }
               case 'TRUE': {
                 if( not ) {
-                  returnValue += 'false';
+                  returnValue += '!1';
                 } else {
-                  returnValue += 'true';
+                  returnValue += '!0';
                 }
                 iL1 = cL1;
                 break;
@@ -176,7 +181,7 @@ export default class jTDAL {
                 }
                 returnValue[ 0 ] += closed.beforeClose + ( closed.omitClose ? '' : tmpTDALTags[ 0 ] ).replaceAll( '\\', '\\\\' ).replaceAll( '`', '\\`' ).replaceAll( '${', '\\${' ) + closed.afterClose;
                 if( closed.repeatName ) {
-                  returnValue[ 0 ] += '`;}},""):"")}' + `\${(delete r["REPEAT"]["${ closed.repeatName }"],delete r["${ closed.repeatName }"],"")}` + closed.repeatCloseTail!;
+                  returnValue[ 0 ] += '`;}},""):"")}' + `\${(delete r.REPEAT${ jTDAL._propertyAccess( closed.repeatName ) },delete r${ jTDAL._propertyAccess( closed.repeatName ) },"")}` + closed.repeatCloseTail!;
                 }
               }
               if( closed.skip || beforeClose ) {
@@ -230,11 +235,16 @@ export default class jTDAL {
 
             if( attributes[ attribute ] && jTDAL._regexpCondition.exec( attributes[ attribute ][ 3 ] ) ) {
               tmpValue = jTDAL._ParsePath( attributes[ attribute ][ 3 ], true, this._macros, tagResult );
-              if( 'false' == tmpValue ) {
+              if( '!1' == tmpValue ) {
                 dropElement = true;
-              } else if( 'true' != tmpValue ) {
-                current[ 0 ] += '${' + tmpValue + '?`';
-                current[ 5 ] = '`:``}' + current[ 5 ];
+              } else if( '!0' != tmpValue ) {
+                if( tmpValue.startsWith( '!c(' ) && !tmpValue.includes( '||' ) ) {
+                  current[ 0 ] += '${' + tmpValue.substring( 1 ) + '?``:`';
+                  current[ 5 ] = '`}' + current[ 5 ];
+                } else {
+                  current[ 0 ] += '${' + tmpValue + '?`';
+                  current[ 5 ] = '`:``}' + current[ 5 ];
+                }
               }
             }
 
@@ -242,16 +252,16 @@ export default class jTDAL {
               attribute = attributesPrefix + jTDAL._keywords[ 1 ];
               if( attributes[ attribute ] && ( tmpMatch = jTDAL._regexpRepeat.exec( attributes[ attribute ][ 3 ] ) ) ) {
                 tmpValue = jTDAL._ParsePath( tmpMatch[ 2 ], false, this._macros, tagResult );
-                if( [ 'false', '""', 'true' ].includes( tmpValue ) ) {
+                if( [ '!1', '!0' ].includes( tmpValue ) ) {
                   dropElement = true;
                 } else {
                   repeatName = tmpMatch[ 1 ];
                   tagResult[ 1 ][ 2 ] = true;
                   tagResult[ 2 ] = true;
-                  current[ 0 ] += '${((q=' + tmpValue + ')&&"object"==typeof q&&((Array.isArray(q)&&(k=q,q=true))||(k=Object.keys(q)))&&k.length?k.reduce((o,v,i)=>{' +
-                                  `r["${ repeatName }"]=(true===q)?v:q[v];` +
-                                  `r["REPEAT"]["${ repeatName }"]={` +
-                                  'index:(true===q)?i:v,number:i+1,length:k.length,even:1==i%2,odd:0==i%2,first:0==i,last:k.length==i+1};' +
+                  current[ 0 ] += '${((q=' + tmpValue + ')&&"object"==typeof q&&((Array.isArray(q)&&(k=q,q=!0))||(k=Object.keys(q)))&&k.length?k.reduce((o,v,i)=>{' +
+                                  `r${ jTDAL._propertyAccess( repeatName ) }=(!0===q)?v:q[v];` +
+                                  `r.REPEAT${ jTDAL._propertyAccess( repeatName ) }={` +
+                                  'index:(!0===q)?i:v,number:i+1,length:k.length,even:1==i%2,odd:0==i%2,first:0==i,last:k.length==i+1};' +
                                   '{let q,k;';
                   repeatCloseTail = current[ 5 ];
                   current[ 5 ] = '';
@@ -268,27 +278,27 @@ export default class jTDAL {
               }
               if( tmpMatch ) {
                 tmpValue = jTDAL._ParsePath( tmpMatch[ 2 ], false, this._macros, tagResult );
-                if( 'false' == tmpValue ) {
+                if( '!1' == tmpValue ) {
                   if( attributesPrefix + jTDAL._keywords[ 2 ] == attribute ) {
                     dropContent = true;
                   } else {
                     dropElement = true;
                   }
-                } else if( 'true' != tmpValue ) {
+                } else if( '!0' != tmpValue ) {
                   const encode: boolean = 'structure' != tmpMatch[ 1 ];
-                  const prefix: string = '${((q=' + tmpValue + ',false!==q)&&("string"===typeof q||("number"===typeof q&&!isNaN(q)))?' + ( encode ? 'String(q).replace(f,m=>s[m])' : 'q' ) + ':(true!==q?``:' + '`';
+                  const prefix: string = '${q=' + tmpValue + ',!1===q||"string"!=typeof q&&("number"!=typeof q||isNaN(q))?!0!==q?``:`';
                   tagResult[ 1 ][ 3 ] ||= encode;
                   tagResult[ 1 ][ 4 ] = true;
                   if( attributesPrefix + jTDAL._keywords[ 2 ] == attribute ) {
                     current[ 3 ] += prefix;
-                    current[ 4 ] += '`))}';
+                    current[ 4 ] += '`:' + ( encode ? 'String(q).replace(f,m=>s[m])' : 'q' ) + '}';
                   } else {
                     if( repeatName ) {
                       openingOutput += prefix;
                     } else {
                       current[ 0 ] += prefix;
                     }
-                    current[ 5 ] = '`))}' + current[ 5 ];
+                    current[ 5 ] = '`:' + ( encode ? 'String(q).replace(f,m=>s[m])' : 'q' ) + '}' + current[ 5 ];
                   }
                 }
               }
@@ -300,22 +310,26 @@ export default class jTDAL {
                 for( const match of attributes[ attribute ][ 3 ].matchAll( jTDAL._regexpAttributes ) ) {
                   const isFlag: boolean = '?' === match[ 2 ];
                   tmpValue = jTDAL._ParsePath( match[ 3 ], isFlag, this._macros, tagResult );
-                  if( 'false' == tmpValue ) {
+                  if( '!1' == tmpValue ) {
                     if( attributes[ match[ 1 ] ] ) {
                       current[ 1 ] = current[ 1 ].replace( RegExp( "\\s*\\b" + match[ 1 ] + "\\b(?:=(['\"]).*?\\1)?(?=\\s|\\/?>)" ), '' );
                     }
-                  } else if( 'true' != tmpValue ) {
+                  } else if( '!0' != tmpValue ) {
                     if( isFlag ) {
-                      current[ 2 ] += `\${${ tmpValue }?\` ${ match[ 1 ] }\`:\`\``;
+                      if( tmpValue.startsWith( '!c(' ) && !tmpValue.includes( '||' ) ) {
+                        current[ 2 ] += `\${${ tmpValue.substring( 1 ) }?\`\`:\` ${ match[ 1 ] }\``;
+                      } else {
+                        current[ 2 ] += `\${${ tmpValue }?\` ${ match[ 1 ] }\`:\`\``;
+                      }
                     } else {
                       tagResult[ 1 ][ 4 ] = true;
-                      current[ 2 ] += `\${((q=${ tmpValue },false!==q)&&((q&&"string"===typeof q)||("number"===typeof q&&!isNaN(q)))?\` ${ match[ 1 ] }="\${q}"\`:(true!==q?\`\`:\`` + ` ${ match[ 1 ] }`;
+                      current[ 2 ] += `\${q=${ tmpValue },!1===q||(!q||"string"!=typeof q)&&("number"!=typeof q||isNaN(q))?!0!==q?\`\`:\`` + ` ${ match[ 1 ] }`;
                     }
                     if( attributes[ match[ 1 ] ] ) {
                       current[ 1 ] = current[ 1 ].replace( RegExp( `\\s*\\b${match[ 1 ]}\\b(?:=(['"]).*?\\1)?(?=\\s|\\/?>)` ), '' );
                       current[ 2 ] += attributes[ match[ 1 ] ][ 3 ] ? '=' + ( attributes[ match[ 1 ] ][ 2 ] + attributes[ match[ 1 ] ][ 3 ] + attributes[ match[ 1 ] ][ 2 ] ).replaceAll( '\\', '\\\\' ).replaceAll( '`', '\\`' ).replaceAll( '${', '\\${' ) : '';
                     }
-                    current[ 2 ] += isFlag ? '}' : '`))}';
+                    current[ 2 ] += isFlag ? '}' : `\`:\` ${ match[ 1 ] }="\${q}"\`}`;
                   }
                 }
               }
@@ -325,19 +339,21 @@ export default class jTDAL {
               attribute = attributesPrefix + jTDAL._keywords[ 5 ];
               if( attributes[ attribute ] && jTDAL._regexpCondition.exec( attributes[ attribute ][ 3 ] ) ) {
                 tmpValue = jTDAL._ParsePath( attributes[ attribute ][ 3 ], true, this._macros, tagResult );
-                if( 'true' == tmpValue ) {
+                if( '!0' == tmpValue ) {
                   current[ 1 ] = '';
                   omitClose = true;
-                } else if( 'false' != tmpValue ) {
-                  const omitTagPrefix: string = `\${${ tmpValue }?\`\`:\``;
+                } else if( '!1' != tmpValue ) {
+                  const invertTernary: boolean = tmpValue.startsWith( '!c(' ) && !tmpValue.includes( '||' );
+                  const omitTagPrefix: string = invertTernary ? `\${${ tmpValue.substring( 1 ) }?\`` : `\${${ tmpValue }?\`\`:\``;
+                  const omitTagSuffix: string = invertTernary ? '`' + ':``}' : '`}';
                   if( repeatName ) {
                     openingOutput += omitTagPrefix;
                   } else {
                     current[ 0 ] += omitTagPrefix;
                   }
-                  current[ 3 ] = '`}' + current[ 3 ];
+                  current[ 3 ] = omitTagSuffix + current[ 3 ];
                   current[ 4 ] += omitTagPrefix;
-                  current[ 5 ] = '`}' + current[ 5 ];
+                  current[ 5 ] = omitTagSuffix + current[ 5 ];
                 }
               }
             }
@@ -362,7 +378,7 @@ export default class jTDAL {
               returnValue[ 0 ] += current[ 1 ].replaceAll( '\\', '\\\\' ).replaceAll( '`', '\\`' ).replaceAll( '${', '\\${' ) + current[ 2 ] + ( current[ 1 ] ? ( syntheticClose ? '>' : '/>' ) : '' ) + current[ 3 ];
               returnValue[ 0 ] += current[ 4 ] + ( syntheticClose ? `</${ tagName }>` : '' ).replaceAll( '\\', '\\\\' ).replaceAll( '`', '\\`' ).replaceAll( '${', '\\${' ) + current[ 5 ];
               if( repeatName ) {
-                returnValue[ 0 ] += '`;}},""):"")}' + `\${(delete r["REPEAT"]["${ repeatName }"],delete r["${ repeatName }"],"")}` + repeatCloseTail;
+                returnValue[ 0 ] += '`;}},""):"")}' + `\${(delete r.REPEAT${ jTDAL._propertyAccess( repeatName ) },delete r${ jTDAL._propertyAccess( repeatName ) },"")}` + repeatCloseTail;
               }
               sourceIndex = jTDAL._regexpTagWithTDAL.lastIndex;
             } else {
@@ -424,7 +440,7 @@ export default class jTDAL {
     if( jTDAL._regexpMacroName.test( macroName ) ) {
       const macroResult: ParseResult = this._Parse( template );
       if( this._trim ) {
-        macroResult[ 0 ] = '(' + macroResult[ 0 ] + ').trim()';
+        macroResult[ 0 ] = macroResult[ 0 ] + '.trim()';
       }
       this._macros[ macroName ] = macroResult;
     } else {
@@ -452,10 +468,10 @@ export default class jTDAL {
 
     if( parseResult[ 1 ][ 0 ] ) {
       declarations.push( 'r=' + ( parseResult[ 2 ] ? '{REPEAT:{}}' : '{}' ) );
-      declarations.push( 'c=(a,c,e)=>{let z=a,y=c.split("/"),x=0,w,l=y.length,m=2&e;for(;x<l&&1!==z;){z="object"===typeof z&&null!==z&&void 0!==(w="function"===typeof z[y[x]]?z[y[x]](d,r):z[y[x]])&&w;x++;if(1&e&&(false===z||x==l&&m&&!b(z))){z=d;e=0;x=0}}return m?b(z):z}' );
+      declarations.push( 'c=(a,c,e)=>{let z=a,y=c.split("/"),x=0,w,l=y.length,m=2&e;for(;x<l&&1!==z;)z="object"==typeof z&&null!==z&&void 0!==(w="function"==typeof z[y[x]]?z[y[x]](d,r):z[y[x]])&&w,x++,1&e&&(!1===z||x==l&&m&&!b(z))&&(z=d,e=0,x=0);return m?b(z):z}' );
     }
     if( parseResult[ 1 ][ 1 ] ) {
-      declarations.push( 'b=v=>!!v&&("object"!==typeof v||(Array.isArray(v)?0<v.length:0<Object.keys(v).length))' );
+      declarations.push( 'b=v=>!!v&&("object"!=typeof v||(Array.isArray(v)?0<v.length:0<Object.keys(v).length))' );
     }
     if( parseResult[ 1 ][ 3 ] ) {
       declarations.push( `f=/[&<>"]/g`, `s={"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}` );
@@ -474,8 +490,7 @@ export default class jTDAL {
     return (
       ( parseResult[ 1 ][ 2 ] ? 'let q,k;' : ( parseResult[ 1 ][ 4 ] ? 'let q;' : '' ) ) +
       ( declarations.length ? `const ${ declarations.join( ',' ) };` : '' ) +
-      'return ' + ( this._trim ? '(' : '' ) + parseResult[ 0 ] +
-      ( this._trim ? ').trim()' : '' )
+      'return' + parseResult[ 0 ] + ( ( this._trim && '``' != parseResult[ 0 ] ) ? '.trim()' : '' )
     );
   }
 

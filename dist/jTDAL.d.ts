@@ -14,10 +14,12 @@ export default class jTDAL {
     private static readonly _regexpPathSeparator;
     private static readonly _regexpTagEnd;
     private static readonly _regexpMacroName;
+    private static readonly _regexpPropertyName;
     private static readonly _HTML5VoidElements;
     private readonly _trim;
     private readonly _strip;
     private _macros;
+    private static _propertyAccess;
     private static _ParsePath;
     constructor(trim?: boolean, strip?: boolean);
     private _Parse;
